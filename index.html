@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#CEB694">
     <title>Phant Studio — Suivi & Gestion Projets</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Phant Studio">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Commissioner:ital,wght@0,400;0,600;0,800;1,400&family=Passion+One:wght@700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
@@ -13,26 +19,29 @@
 <body class="min-h-screen flex flex-col antialiased">
 
     <!-- En-tête -->
-    <header class="border-b-2 border-[#1B1A18] bg-[#CEB694] sticky top-0 z-40">
+    <header class="border-b-2 border-[#1B1A18] bg-[#CEB694] sm:sticky sm:top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap gap-3 items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 rounded-[6px] bg-[#CC0C33] border-2 border-[#1B1A18] flex items-center justify-center shadow-[2px_2px_0px_#1B1A18]">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[6px] bg-[#CC0C33] border-2 border-[#1B1A18] flex items-center justify-center shadow-[2px_2px_0px_#1B1A18] shrink-0">
                     <i data-lucide="gamepad-2" class="w-7 h-7 text-[#EFEEEC]"></i>
                 </div>
                 <div>
-                    <h1 class="font-heading text-3xl tracking-wide text-[#1B1A18] flex items-center gap-2">
-                        PHANT STUDIO <span id="app-version" class="text-xs px-2 py-0.5 rounded-[6px] bg-[#EFEEEC] border-2 border-[#1B1A18] font-sans font-semibold">v2.1.0</span>
+                    <h1 class="font-heading text-2xl sm:text-3xl tracking-wide text-[#1B1A18] flex items-center gap-2">
+                        PHANT STUDIO <span class="text-xs px-2 py-0.5 rounded-[6px] bg-[#EFEEEC] border-2 border-[#1B1A18] font-sans font-semibold">v3.0.0</span>
                     </h1>
-                    <p class="text-xs font-semibold text-[#1B1A18]/80">Chaque création en fait rêver d’autres.</p>
+                    <p class="hidden sm:block text-xs font-semibold text-[#1B1A18]/80">Chaque création en fait rêver d’autres.</p>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
+                <button id="header-timer-chip" onclick="switchTab('timer')" class="hidden text-xs font-bold px-2.5 py-1 rounded-[6px] border-2 border-[#1B1A18] bg-[#1B1A18] text-[#E3CFB4] items-center gap-1.5 shadow-[1px_1px_0px_#1B1A18]">
+                    <i data-lucide="timer" class="w-3.5 h-3.5"></i> <span id="header-timer-text">00:00:00</span>
+                </button>
                 <span id="sync-status-badge" class="text-xs font-semibold px-2.5 py-1 rounded-[6px] border-2 border-[#1B1A18] bg-amber-200 text-amber-900 flex items-center gap-1.5 shadow-[1px_1px_0px_#1B1A18]">
                     <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i> Local uniquement
                 </span>
                 <button onclick="openConfigModal()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
-                    <i data-lucide="settings" class="w-4 h-4 text-[#02968A]"></i> Réglages & Sync
+                    <i data-lucide="settings" class="w-4 h-4 text-[#02968A]"></i> <span class="hidden sm:inline">Réglages & Sync</span><span class="sm:hidden">Réglages</span>
                 </button>
                 <button onclick="exportDataCSV()" class="retro-btn px-3 py-1.5 text-sm flex items-center gap-1.5">
                     <i data-lucide="download" class="w-4 h-4"></i> CSV
@@ -53,63 +62,82 @@
             <button onclick="switchTab('projects')" id="btn-tab-projects" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
                 <i data-lucide="folder-kanban" class="w-5 h-5"></i> Projets
             </button>
+            <button onclick="switchTab('planning')" id="btn-tab-planning" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
+                <i data-lucide="calendar-days" class="w-5 h-5"></i> Planning
+            </button>
+            <button onclick="switchTab('stats')" id="btn-tab-stats" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i> Stats
+            </button>
             <button onclick="switchTab('clients')" id="btn-tab-clients" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
                 <i data-lucide="users" class="w-5 h-5"></i> Clients
             </button>
         </div>
     </nav>
 
-    <!-- Conteneur Principal -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        <!-- ONGLET : TABLEAU DE BORD -->
+        <!-- ================= TABLEAU DE BORD ================= -->
         <div id="tab-dashboard" class="tab-content space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="retro-box p-5 space-y-1">
-                    <p class="text-xs font-semibold text-[#1B1A18]/70 uppercase">Total Heures Travaillées</p>
-                    <h3 class="font-heading text-3xl text-[#1B1A18]" id="dash-total-hours">0h00</h3>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div class="retro-box p-4 sm:p-5 space-y-2">
+                    <p class="text-[10px] sm:text-xs font-semibold text-[#1B1A18]/70 uppercase">Heures ce mois</p>
+                    <h3 class="font-heading text-2xl sm:text-3xl text-[#1B1A18]" id="dash-month-hours">0h00</h3>
+                    <div id="dash-month-goal" class="space-y-1"></div>
                 </div>
-                <div class="retro-box p-5 space-y-1">
-                    <p class="text-xs font-semibold text-[#1B1A18]/70 uppercase">Valeur Estimée</p>
-                    <h3 class="font-heading text-3xl text-[#1B1A18]" id="dash-total-revenue">0,00 €</h3>
+                <div class="retro-box p-4 sm:p-5 space-y-1">
+                    <p class="text-[10px] sm:text-xs font-semibold text-[#1B1A18]/70 uppercase">Total heures travaillées</p>
+                    <h3 class="font-heading text-2xl sm:text-3xl text-[#1B1A18]" id="dash-total-hours">0h00</h3>
                 </div>
-                <div class="retro-box p-5 space-y-1">
-                    <p class="text-xs font-semibold text-[#1B1A18]/70 uppercase">Projets Actifs</p>
-                    <h3 class="font-heading text-3xl text-[#1B1A18]" id="dash-active-projects">0</h3>
+                <div class="retro-box p-4 sm:p-5 space-y-1">
+                    <p class="text-[10px] sm:text-xs font-semibold text-[#1B1A18]/70 uppercase">Valeur estimée du temps</p>
+                    <h3 class="font-heading text-2xl sm:text-3xl text-[#1B1A18]" id="dash-total-revenue">0,00 €</h3>
                 </div>
-                <div class="retro-box p-5 space-y-1">
-                    <p class="text-xs font-semibold text-[#1B1A18]/70 uppercase">Clients Enregistrés</p>
-                    <h3 class="font-heading text-3xl text-[#1B1A18]" id="dash-total-clients">0</h3>
+                <div class="retro-box p-4 sm:p-5 space-y-1">
+                    <p class="text-[10px] sm:text-xs font-semibold text-[#1B1A18]/70 uppercase">Projets actifs / Clients</p>
+                    <h3 class="font-heading text-2xl sm:text-3xl text-[#1B1A18]"><span id="dash-active-projects">0</span> <span class="text-xl text-[#1B1A18]/60">/ <span id="dash-total-clients">0</span></span></h3>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 retro-box p-6 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Projets Récents</h2>
-                        <button onclick="switchTab('projects')" class="text-sm font-semibold underline hover:text-[#CC0C33]">Voir tout</button>
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="retro-box p-6 space-y-4">
+                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18] flex items-center gap-2"><i data-lucide="bell-ring" class="w-6 h-6 text-[#CC0C33]"></i> À surveiller</h2>
+                        <div id="dash-alerts" class="space-y-2"></div>
                     </div>
-                    <div id="dash-projects-list" class="space-y-3"></div>
+                    <div class="retro-box p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Projets récents</h2>
+                            <button onclick="switchTab('projects')" class="text-sm font-semibold underline hover:text-[#CC0C33]">Voir tout</button>
+                        </div>
+                        <div id="dash-projects-list" class="space-y-3"></div>
+                    </div>
                 </div>
 
-                <div class="retro-box-beige p-6 space-y-4 flex flex-col justify-between">
-                    <div class="space-y-2">
-                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Session Rapide</h2>
-                        <p class="text-sm">Sélectionnez un projet pour lancer directement le chrono.</p>
+                <div class="space-y-6">
+                    <div class="retro-box-beige p-6 space-y-4">
+                        <div class="space-y-2">
+                            <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Session rapide</h2>
+                            <p class="text-sm">Choisissez un projet pour lancer directement le chrono.</p>
+                        </div>
+                        <div class="space-y-3">
+                            <select id="quick-project-select" class="retro-input w-full text-sm">
+                                <option value="">-- Sélectionner un projet --</option>
+                            </select>
+                            <button onclick="quickStartTimer()" class="retro-btn w-full py-2.5 text-lg flex items-center justify-center gap-2">
+                                <i data-lucide="play" class="w-5 h-5"></i> Lancer le chrono
+                            </button>
+                        </div>
                     </div>
-                    <div class="space-y-3">
-                        <select id="quick-project-select" class="retro-input w-full text-sm">
-                            <option value="">-- Sélectionner un projet --</option>
-                        </select>
-                        <button onclick="quickStartTimer()" class="retro-btn w-full py-2.5 text-lg flex items-center justify-center gap-2">
-                            <i data-lucide="play" class="w-5 h-5"></i> Lancer le Chrono
-                        </button>
+                    <div class="retro-box p-6 space-y-3">
+                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Prochaines échéances</h2>
+                        <div id="dash-upcoming" class="space-y-2 text-sm"></div>
+                        <button onclick="switchTab('planning')" class="text-sm font-semibold underline hover:text-[#CC0C33]">Ouvrir le planning</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ONGLET : CHRONO & NOTES -->
+        <!-- ================= CHRONO & NOTES ================= -->
         <div id="tab-timer" class="tab-content hidden space-y-8">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Chronomètre -->
@@ -120,6 +148,11 @@
                     <div>
                         <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Chronomètre</h2>
                         <p class="text-xs font-semibold">Continue même si vous fermez la page</p>
+                    </div>
+
+                    <div id="timer-forgot-banner" class="hidden w-full bg-amber-200 border-2 border-[#1B1A18] rounded-[6px] p-3 text-left text-xs font-semibold space-y-2">
+                        <p>⏰ Le chrono tourne depuis plus de 4 heures. Vous l'avez peut-être oublié ?</p>
+                        <button onclick="fixForgottenTimer()" class="retro-btn-secondary px-2.5 py-1 text-sm">Corriger la durée</button>
                     </div>
 
                     <div class="w-full space-y-3 text-left">
@@ -147,15 +180,15 @@
                     <button id="btn-reset-timer" onclick="discardTimer()" disabled class="text-xs underline font-semibold hover:text-[#CC0C33] disabled:opacity-40 disabled:no-underline">Annuler ce chrono sans l'enregistrer</button>
                 </div>
 
-                <!-- Éditeur de Notes Enrichi -->
+                <!-- Carnets de notes -->
                 <div class="lg:col-span-2 retro-box p-6 space-y-4 flex flex-col">
                     <div class="flex flex-wrap gap-2 items-center justify-between border-b-2 border-[#1B1A18] pb-3">
                         <div>
-                            <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Notes & Rédaction</h2>
+                            <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Carnet de notes</h2>
                             <p id="notes-save-status" class="text-[11px] font-semibold text-[#1B1A18]/60">Enregistrement automatique</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="openDecompilerModal()" title="Décompilateur IA (Scan de conversation / image client)" class="retro-btn px-2.5 py-1 text-sm flex items-center gap-1 bg-[#D1A802] text-[#1B1A18]">
+                            <button onclick="openDecompilerModal()" title="Décompilateur IA (scan de conversation / image client)" class="retro-btn px-2.5 py-1 text-sm flex items-center gap-1 bg-[#D1A802] text-[#1B1A18]">
                                 <i data-lucide="sparkles" class="w-4 h-4"></i> <span class="hidden sm:inline">Décompilateur IA</span>
                             </button>
                             <button onclick="openSessionsModal()" class="retro-btn-secondary px-3 py-1 text-sm flex items-center gap-1.5">
@@ -164,184 +197,186 @@
                         </div>
                     </div>
 
-                    <!-- Barre d'outils Rich Text -->
-                    <div class="flex flex-wrap gap-2 bg-[#CEB694] p-2 border-2 border-[#1B1A18] rounded-[6px]">
-                        <button onmousedown="event.preventDefault()" onclick="formatText('bold')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] font-bold text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Gras</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('italic')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] italic text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Italique</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('underline')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] underline text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Souligné</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('formatBlock', 'h2')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] font-heading text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Titre</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('formatBlock', 'p')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Texte</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('insertUnorderedList')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">• Puces</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('insertOrderedList')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">1. Liste</button>
-                        <button onclick="clearNotes()" class="ml-auto px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] text-xs hover:bg-white hover:text-[#CC0C33] shadow-[1px_1px_0px_#1B1A18]">Tout effacer</button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <label for="notes-target" class="text-xs font-semibold uppercase">Carnet :</label>
+                        <select id="notes-target" onchange="switchNotesTarget(this.value)" class="retro-input text-sm flex-1 min-w-[200px]"></select>
+                        <button id="notes-open-project" onclick="openProjectDetailModal(currentNotesTarget)" class="hidden retro-btn-secondary px-2.5 py-1 text-sm">Fiche projet</button>
                     </div>
 
-                    <!-- Zone éditable -->
-                    <div id="rich-text-editor" contenteditable="true" class="retro-input flex-1 min-h-[250px] bg-white overflow-y-auto focus:outline-none p-4" data-placeholder="Écrivez vos notes de réunion, idées ou comptes-rendus ici... (enregistrement automatique)"></div>
+                    <div class="flex flex-wrap gap-2 bg-[#CEB694] p-2 border-2 border-[#1B1A18] rounded-[6px]">
+                        <button onmousedown="event.preventDefault()" onclick="formatText('bold')" class="tool-btn font-bold">Gras</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('italic')" class="tool-btn italic">Italique</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('underline')" class="tool-btn underline">Souligné</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('formatBlock', 'h2')" class="tool-btn font-heading">Titre</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('formatBlock', 'p')" class="tool-btn">Texte</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('insertUnorderedList')" class="tool-btn">• Puces</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('insertOrderedList')" class="tool-btn">1. Liste</button>
+                        <button onclick="clearNotes()" class="tool-btn ml-auto hover:text-[#CC0C33]">Tout effacer</button>
+                    </div>
+
+                    <div id="rich-text-editor" contenteditable="true" class="retro-input flex-1 min-h-[300px] bg-white overflow-y-auto focus:outline-none p-4" data-placeholder="Écrivez vos notes de réunion, idées ou comptes-rendus ici... (enregistrement automatique)"></div>
                 </div>
             </div>
 
-            <!-- SECTION : LAYOUT PAR DÉFAUT (Questionnaires prédéfinis) -->
-            <div class="retro-box p-6 space-y-6">
-                <div class="border-b-2 border-[#1B1A18] pb-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <!-- Questionnaires -->
+            <div class="retro-box p-6 space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18] flex items-center gap-2">
                             <i data-lucide="layout-template" class="w-6 h-6 text-[#CC0C33]"></i> Questionnaires prédéfinis
                         </h2>
-                        <p class="text-xs font-semibold text-[#1B1A18]/70">Cliquez pour insérer un brief type dans vos notes.</p>
+                        <p class="text-xs font-semibold text-[#1B1A18]/70">Cliquez pour insérer un brief type dans le carnet ouvert.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <button onclick="loadQuestionnaire('mariage')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#CC0C33]">
-                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Mariage
-                        </button>
-                        <button onclick="loadQuestionnaire('affiches')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#02968A]">
-                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Affiches
-                        </button>
-                        <button onclick="loadQuestionnaire('logo')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#D1A802] text-[#1B1A18]">
-                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Logo / DA
-                        </button>
+                        <button onclick="loadQuestionnaire('mariage')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#CC0C33]"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Mariage</button>
+                        <button onclick="loadQuestionnaire('affiches')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#02968A]"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Affiches</button>
+                        <button onclick="loadQuestionnaire('logo')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#D1A802] text-[#1B1A18]"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Logo / DA</button>
                     </div>
                 </div>
-
-                <div class="space-y-6">
-                    <div class="space-y-4">
-                        <h3 class="font-heading text-xl text-[#EFEEEC] bg-[#CC0C33] px-3 py-1 rounded-[4px] inline-block">Brief Mariage & Papeterie</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">1. Vision & Univers</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Date & lieu :</strong> Saison, type de lieu (château, grange, plage...).</li>
-                                    <li><strong>Ambiance :</strong> 3 mots, palette de couleurs, inspirations Pinterest.</li>
-                                    <li><strong>Histoire du couple :</strong> Anecdotes, symboles à intégrer.</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">2. Besoins en Papeterie</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Avant :</strong> Save the date, faire-part, RSVP.</li>
-                                    <li><strong>Jour J :</strong> Livrets, plan de table, menus, signalétique.</li>
-                                    <li><strong>Après :</strong> Cartes de remerciement.</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">3. Technique & Logistique</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Quantités :</strong> Nombre de foyers + marge.</li>
-                                    <li><strong>Textes :</strong> Rédaction, bilinguisme.</li>
-                                    <li><strong>Fabrication :</strong> Formats, papiers, finitions.</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">4. Calendrier & Budget</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Planning d'envoi :</strong> Dates d'envoi souhaitées.</li>
-                                    <li><strong>Budget global :</strong> Fourchette pour la papeterie.</li>
-                                </ul>
-                            </div>
+                <details class="group">
+                    <summary class="cursor-pointer text-sm font-semibold underline">Voir le contenu des questionnaires</summary>
+                    <div class="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                            <h4 class="font-heading text-lg text-[#CC0C33]">Mariage & papeterie</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li><strong>Vision :</strong> date, lieu, ambiance, palette, histoire du couple, inspirations.</li>
+                                <li><strong>Papeterie :</strong> save the date, faire-part, RSVP, jour J, remerciements.</li>
+                                <li><strong>Technique :</strong> quantités, textes, formats, papiers, finitions.</li>
+                                <li><strong>Calendrier :</strong> planning d'envoi, budget global.</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                            <h4 class="font-heading text-lg text-[#02968A]">Affiches & événementiel</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li><strong>Message :</strong> nom de l'événement, message clé, call to action.</li>
+                                <li><strong>DA :</strong> style, palette, logos partenaires.</li>
+                                <li><strong>Technique :</strong> formats print, déclinaisons web, contraintes imprimeur.</li>
+                                <li><strong>Calendrier :</strong> BAT, lancement campagne.</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                            <h4 class="font-heading text-lg text-[#B08D00]">Logo & identité</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li><strong>Entreprise :</strong> activité, cible, valeurs.</li>
+                                <li><strong>Graphisme :</strong> style, couleurs, typos, concurrence.</li>
+                                <li><strong>Livrables :</strong> déclinaisons, charte, supports.</li>
+                                <li><strong>Planning & droits :</strong> deadline, cession de droits.</li>
+                            </ul>
                         </div>
                     </div>
-
-                    <div class="space-y-4 pt-4 border-t-2 border-[#1B1A18]/20">
-                        <h3 class="font-heading text-xl text-[#D1A802] bg-[#1B1A18] px-3 py-1 rounded-[4px] inline-block">Brief Logo & Identité Visuelle</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">1. Entreprise & Valeurs</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Activité & Histoire :</strong> Présentation du projet/entreprise et sa genèse.</li>
-                                    <li><strong>Cible / Audience :</strong> Qui sont les clients idéaux (profil, âge, style) ?</li>
-                                    <li><strong>Valeurs & Positionnement :</strong> 3 à 5 adjectifs (ex : haut de gamme, accessible, dynamique, éco-responsable).</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">2. Orientations Graphiques</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Style visuel :</strong> Minimaliste, illustré, typographique, emblème, mascotte ?</li>
-                                    <li><strong>Couleurs & Typographies :</strong> Préférences chromatiques ou interdictions strictes.</li>
-                                    <li><strong>Inspirations & Concurrence :</strong> Références appréciées et logos concurrents dont se démarquer.</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">3. Livrables & Déclinaisons</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Formats du logo :</strong> Version principale, secondaire/emblème, picto réseaux.</li>
-                                    <li><strong>Charte graphique :</strong> Requise (palette, règles d'usage, typographies) ?</li>
-                                    <li><strong>Supports de communication :</strong> Carte de visite, papier en-tête, réseaux sociaux, packaging...</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">4. Planning & Cession de Droits</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Deadline :</strong> Date limite de livraison finale.</li>
-                                    <li><strong>Droits d'auteur :</strong> Utilisation (web, print, TV, zones géographiques, durée).</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4 pt-4 border-t-2 border-[#1B1A18]/20">
-                        <h3 class="font-heading text-xl text-white bg-[#02968A] px-3 py-1 rounded-[4px] inline-block">Brief Affiches & Visuels Événementiels</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">1. Objectif & Message Clé</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Nom de l'événement / Produit :</strong> Titre principal accrocheur.</li>
-                                    <li><strong>Message prioritaire :</strong> Ce que la personne doit retenir en 2 secondes.</li>
-                                    <li><strong>Call to Action (CTA) :</strong> Site web, QR code, billetterie, date & lieu.</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">2. Ambiance & Direction Artistique</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Ton & Style :</strong> Illustré 2D/3D, photomontage, typographique, festif, sobre ?</li>
-                                    <li><strong>Contraintes visuelles :</strong> Logos partenaires/sponsors à intégrer.</li>
-                                    <li><strong>Axe créatif :</strong> Ambiance jour/nuit, rétro, moderne, palette imposée.</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">3. Spécifications Techniques & Impression</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>Formats d'affichage :</strong> A3, A2, A0, Abribus (120x176), kakemono, bâche ?</li>
-                                    <li><strong>Déclinaisons digitales :</strong> Post & story Instagram, bannière Facebook, web.</li>
-                                    <li><strong>Contraintes imprimeur :</strong> Fonds perdus, profil RVB/CMJN, résolution (300 DPI).</li>
-                                </ul>
-                            </div>
-                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                                <h4 class="font-heading text-lg text-[#1B1A18]">4. Calendrier de Diffusion</h4>
-                                <ul class="list-disc list-inside space-y-1 text-xs">
-                                    <li><strong>BAT (Bon À Tirer) :</strong> Date limite de validation pour envoi à l'impression.</li>
-                                    <li><strong>Lancement campagne :</strong> Date de début d'affichage public / publication.</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </details>
             </div>
         </div>
 
-        <!-- ONGLET : PROJETS -->
+        <!-- ================= PROJETS ================= -->
         <div id="tab-projects" class="tab-content hidden space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Gestion des Projets</h2>
-                    <p class="text-xs font-semibold text-[#1B1A18]/70">Cliquez sur un projet pour voir son récapitulatif complet et ses sessions.</p>
+                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Gestion des projets</h2>
+                    <p class="text-xs font-semibold text-[#1B1A18]/70">Cliquez sur un projet pour ouvrir sa fiche complète (étapes, liens, notes, sessions).</p>
                 </div>
                 <button onclick="openProjectModal()" class="retro-btn px-4 py-2 text-lg flex items-center justify-center gap-2">
-                    <i data-lucide="plus" class="w-5 h-5"></i> Nouveau Projet
+                    <i data-lucide="plus" class="w-5 h-5"></i> Nouveau projet
                 </button>
+            </div>
+            <div class="flex flex-col md:flex-row gap-3 md:items-center">
+                <div class="relative flex-1">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#1B1A18]/50"></i>
+                    <input type="search" id="project-search" oninput="renderProjects()" placeholder="Rechercher un projet, un client..." class="retro-input w-full text-sm pl-9">
+                </div>
+                <div id="project-status-filters" class="flex flex-wrap gap-2"></div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-grid"></div>
         </div>
 
-        <!-- ONGLET : CLIENTS -->
+        <!-- ================= PLANNING ================= -->
+        <div id="tab-planning" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Planning</h2>
+                    <p class="text-xs font-semibold text-[#1B1A18]/70">Deadlines des projets et dates des étapes.</p>
+                </div>
+                <button onclick="exportICS()" class="retro-btn-secondary px-4 py-2 text-base flex items-center gap-2">
+                    <i data-lucide="calendar-plus" class="w-5 h-5"></i> Exporter vers mon agenda (.ics)
+                </button>
+            </div>
+            <div class="retro-box p-4 sm:p-6 space-y-4">
+                <div class="flex items-center justify-between gap-2">
+                    <button onclick="changeCalendarMonth(-1)" class="retro-btn-secondary px-3 py-1 text-base" aria-label="Mois précédent">‹</button>
+                    <div class="text-center">
+                        <h3 id="cal-title" class="font-heading text-2xl capitalize">Mois</h3>
+                        <button onclick="changeCalendarMonth(0)" class="text-xs underline font-semibold">Aujourd'hui</button>
+                    </div>
+                    <button onclick="changeCalendarMonth(1)" class="retro-btn-secondary px-3 py-1 text-base" aria-label="Mois suivant">›</button>
+                </div>
+                <div class="flex flex-wrap gap-3 text-[11px] font-semibold">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#CC0C33] border border-[#1B1A18]"></span> Deadline projet</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#02968A] border border-[#1B1A18]"></span> Étape</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#EFEEEC] border border-[#1B1A18]"></span> Étape faite</span>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-xs"></div>
+            </div>
+            <div class="retro-box p-6 space-y-3">
+                <h3 class="font-heading text-xl">Dans les 30 prochains jours</h3>
+                <div id="planning-upcoming" class="space-y-2 text-sm"></div>
+            </div>
+        </div>
+
+        <!-- ================= STATS ================= -->
+        <div id="tab-stats" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div>
+                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Statistiques</h2>
+                    <p class="text-xs font-semibold text-[#1B1A18]/70">Votre temps de travail, mois par mois.</p>
+                </div>
+                <div class="flex items-end gap-2">
+                    <div>
+                        <label for="goal-input" class="text-[11px] font-semibold uppercase block">Objectif mensuel (heures)</label>
+                        <input type="number" id="goal-input" min="0" step="1" class="retro-input w-32 text-sm" placeholder="ex : 80" onchange="saveMonthlyGoal(this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="retro-box p-6 space-y-4">
+                <h3 class="font-heading text-xl">Heures travaillées — 12 derniers mois</h3>
+                <div id="stats-months" class="space-y-1"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="retro-box p-6 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h3 class="font-heading text-xl">Répartition par catégorie</h3>
+                        <select id="stats-period" onchange="renderStats()" class="retro-input text-sm">
+                            <option value="month">Ce mois-ci</option>
+                            <option value="lastmonth">Mois dernier</option>
+                            <option value="12m" selected>12 derniers mois</option>
+                            <option value="all">Depuis le début</option>
+                        </select>
+                    </div>
+                    <div id="stats-categories" class="space-y-2"></div>
+                </div>
+                <div class="retro-box p-6 space-y-4">
+                    <h3 class="font-heading text-xl">Temps réel vs prévu (forfaits)</h3>
+                    <p class="text-xs text-[#1B1A18]/70">Renseignez le « prix du forfait » d'un projet pour voir combien vous gagnez réellement par heure.</p>
+                    <div id="stats-forfaits" class="overflow-x-auto"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= CLIENTS ================= -->
         <div id="tab-clients" class="tab-content hidden space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Gestion des Clients</h2>
+                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Gestion des clients</h2>
                     <p class="text-xs font-semibold text-[#1B1A18]/70">Coordonnées de facturation et de livraison.</p>
                 </div>
                 <button onclick="openClientModal()" class="retro-btn px-4 py-2 text-lg flex items-center justify-center gap-2">
-                    <i data-lucide="plus" class="w-5 h-5"></i> Nouveau Client
+                    <i data-lucide="plus" class="w-5 h-5"></i> Nouveau client
                 </button>
+            </div>
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#1B1A18]/50"></i>
+                <input type="search" id="client-search" oninput="renderClients()" placeholder="Rechercher un nom, une entreprise, un email, un téléphone..." class="retro-input w-full text-sm pl-9">
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="clients-grid"></div>
         </div>
@@ -357,18 +392,28 @@
         <option value="Administratif"></option>
     </datalist>
 
-    <!-- MODAL : SESSIONS GLOBAL -->
+    <!-- MODAL : HISTORIQUE DES SESSIONS -->
     <div id="sessions-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-4xl max-h-[85vh] overflow-y-auto p-6 space-y-6">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-5xl max-h-[85vh] overflow-y-auto p-6 space-y-5">
             <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 class="font-heading text-2xl text-[#1B1A18]">Historique des Sessions de Travail</h3>
+                <h3 class="font-heading text-2xl text-[#1B1A18]">Historique des sessions de travail</h3>
                 <button onclick="closeModal('sessions-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
-            <div class="flex justify-end">
-                <button onclick="openManualSessionModal()" class="retro-btn px-3 py-1.5 text-sm flex items-center gap-1.5">
-                    <i data-lucide="plus" class="w-4 h-4"></i> Ajouter une session manuelle
+            <div class="flex flex-wrap items-end gap-3">
+                <div>
+                    <label for="sessions-filter-month" class="text-[11px] font-semibold uppercase block">Mois</label>
+                    <input type="month" id="sessions-filter-month" onchange="renderSessions()" class="retro-input text-sm">
+                </div>
+                <div class="flex-1 min-w-[180px]">
+                    <label for="sessions-filter-project" class="text-[11px] font-semibold uppercase block">Projet</label>
+                    <select id="sessions-filter-project" onchange="renderSessions()" class="retro-input text-sm w-full"></select>
+                </div>
+                <button onclick="clearSessionFilters()" class="text-xs underline font-semibold pb-2">Effacer les filtres</button>
+                <button onclick="openManualSessionModal()" class="retro-btn px-3 py-1.5 text-sm flex items-center gap-1.5 ml-auto">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Session manuelle
                 </button>
             </div>
+            <p id="sessions-total" class="text-sm font-semibold"></p>
             <div class="overflow-x-auto bg-white border-2 border-[#1B1A18] rounded-[6px]">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-[#CEB694] text-[#1B1A18] font-heading text-base border-b-2 border-[#1B1A18]">
@@ -387,12 +432,12 @@
         </div>
     </div>
 
-    <!-- MODAL : DÉCOMPILATEUR CONVERSATION IA -->
+    <!-- MODAL : DÉCOMPILATEUR IA -->
     <div id="decompiler-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 space-y-6">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-6">
             <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
                 <h3 class="font-heading text-2xl text-[#1B1A18] flex items-center gap-2">
-                    <i data-lucide="sparkles" class="w-6 h-6 text-[#D1A802]"></i> Décompilateur IA de Conversation Client
+                    <i data-lucide="sparkles" class="w-6 h-6 text-[#D1A802]"></i> Décompilateur IA de conversation client
                 </h3>
                 <button onclick="closeModal('decompiler-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
@@ -411,7 +456,6 @@
                         </div>
                         <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
                     </div>
-
                     <div id="image-preview-container" class="hidden space-y-2">
                         <p class="text-xs font-semibold uppercase">Aperçu de la capture :</p>
                         <img id="image-preview" alt="Aperçu" class="max-h-48 w-full object-contain rounded-[6px] border-2 border-[#1B1A18] bg-white p-2">
@@ -426,29 +470,36 @@
                         <div class="inline-block animate-spin rounded-full h-7 w-7 border-4 border-[#CC0C33] border-t-transparent"></div>
                         <p class="font-heading text-base">Extraction du brief par l'IA...</p>
                     </div>
-
                     <div id="analysis-result-container" class="retro-box p-4 space-y-3 hidden bg-white">
-                        <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-2">
+                        <div class="flex flex-wrap gap-2 items-center justify-between border-b-2 border-[#1B1A18] pb-2">
                             <h4 class="font-heading text-lg text-[#1B1A18]">Résultat</h4>
-                            <button onclick="copyAnalysisToEditor()" class="retro-btn px-2.5 py-1 text-xs bg-[#CC0C33] flex items-center gap-1">
-                                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Insérer dans les notes
-                            </button>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="copyAnalysisToEditor()" class="retro-btn-secondary px-2.5 py-1 text-xs flex items-center gap-1">
+                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Insérer dans le carnet
+                                </button>
+                                <button id="btn-ai-create" onclick="createFromAnalysis()" class="retro-btn px-2.5 py-1 text-xs bg-[#CC0C33] flex items-center gap-1">
+                                    <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Créer client + projet
+                                </button>
+                            </div>
                         </div>
-                        <div id="analysis-text-output" class="text-xs space-y-2 max-h-60 overflow-y-auto whitespace-pre-wrap font-sans"></div>
+                        <div id="analysis-text-output" class="text-xs space-y-2 max-h-72 overflow-y-auto whitespace-pre-wrap font-sans"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL : RÉCAPITULATIF PROJET -->
+    <!-- MODAL : FICHE PROJET -->
     <div id="project-detail-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6 space-y-6">
-            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 id="modal-project-title" class="font-heading text-2xl text-[#1B1A18]">Récapitulatif du Projet</h3>
-                <button onclick="closeModal('project-detail-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+        <div id="project-detail-scroll" class="retro-box bg-[#EFEEEC] w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-6">
+            <div class="flex items-center justify-between gap-2 border-b-2 border-[#1B1A18] pb-3">
+                <h3 id="modal-project-title" class="font-heading text-2xl text-[#1B1A18]">Fiche projet</h3>
+                <div class="flex items-center gap-2">
+                    <button id="detail-edit-btn" class="retro-btn-secondary px-2.5 py-1 text-sm">Éditer</button>
+                    <button onclick="closeModal('project-detail-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
             </div>
-            <div id="modal-project-content" class="space-y-4"></div>
+            <div id="modal-project-content" class="space-y-6"></div>
         </div>
     </div>
 
@@ -480,7 +531,7 @@
                     </div>
                 </div>
                 <div>
-                    <label for="manual-notes" class="text-xs font-semibold uppercase">Notes / Descriptif :</label>
+                    <label for="manual-notes" class="text-xs font-semibold uppercase">Notes / descriptif :</label>
                     <input type="text" id="manual-notes" placeholder="Détails..." class="retro-input w-full text-sm mt-1">
                 </div>
                 <div class="flex justify-end gap-3 pt-4">
@@ -492,12 +543,13 @@
     </div>
 
     <!-- MODAL CLIENT -->
-    <div id="client-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="client-modal" class="modal fixed inset-0 z-[60] bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-6">
             <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
                 <h3 id="client-modal-title" class="font-heading text-2xl text-[#1B1A18]">Ajouter un client</h3>
-                <button onclick="closeModal('client-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <button onclick="cancelClientModal()" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
+            <p id="client-ai-hint" class="hidden text-xs font-semibold bg-[#D1A802]/30 border-2 border-[#1B1A18] rounded-[6px] p-2">✨ Pré-rempli par l'IA : vérifiez puis enregistrez. Le projet s'ouvrira ensuite.</p>
             <form id="client-form" onsubmit="saveClient(event)" class="space-y-4">
                 <input type="hidden" id="client-id">
                 <div class="grid grid-cols-2 gap-4">
@@ -507,7 +559,7 @@
                     </div>
                     <div>
                         <label for="client-lastname" class="text-xs font-semibold uppercase">Nom :</label>
-                        <input type="text" id="client-lastname" required class="retro-input w-full text-sm mt-1">
+                        <input type="text" id="client-lastname" class="retro-input w-full text-sm mt-1">
                     </div>
                 </div>
                 <div>
@@ -533,7 +585,7 @@
                     <textarea id="client-delivery-address" rows="2" class="retro-input w-full text-sm mt-1"></textarea>
                 </div>
                 <div class="flex justify-end gap-3 pt-4">
-                    <button type="button" onclick="closeModal('client-modal')" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
+                    <button type="button" onclick="cancelClientModal()" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
                     <button type="submit" class="retro-btn px-4 py-2 text-base">Enregistrer</button>
                 </div>
             </form>
@@ -541,77 +593,105 @@
     </div>
 
     <!-- MODAL PROJET -->
-    <div id="project-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div id="project-modal" class="modal fixed inset-0 z-[60] bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-6">
             <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
                 <h3 id="project-modal-title" class="font-heading text-2xl text-[#1B1A18]">Ajouter un projet</h3>
-                <button onclick="closeModal('project-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <button onclick="cancelProjectModal()" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
+            <p id="project-ai-hint" class="hidden text-xs font-semibold bg-[#D1A802]/30 border-2 border-[#1B1A18] rounded-[6px] p-2">✨ Pré-rempli par l'IA : le compte-rendu sera rangé dans le carnet de ce projet.</p>
             <form id="project-form" onsubmit="saveProject(event)" class="space-y-4">
                 <input type="hidden" id="project-id">
                 <div>
                     <label for="project-name" class="text-xs font-semibold uppercase">Nom du projet :</label>
                     <input type="text" id="project-name" required class="retro-input w-full text-sm mt-1">
                 </div>
-                <div>
-                    <label for="project-client-id" class="text-xs font-semibold uppercase">Client lié :</label>
-                    <select id="project-client-id" required class="retro-input w-full text-sm mt-1">
-                        <option value="">-- Sélectionner un client --</option>
-                    </select>
-                    <p id="project-no-client-hint" class="hidden text-[11px] font-semibold text-[#CC0C33] mt-1">Créez d'abord un client dans l'onglet « Clients ».</p>
-                </div>
-                <div class="space-y-2 bg-[#CEB694] p-3 border-2 border-[#1B1A18] rounded-[6px]">
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="project-has-budget" onchange="toggleBudgetInput()" class="w-4 h-4 accent-[#CC0C33]">
-                        <label for="project-has-budget" class="text-xs font-semibold uppercase cursor-pointer">Définir un budget d'heures (optionnel)</label>
-                    </div>
-                    <div id="budget-container" class="hidden pt-2">
-                        <label for="project-hour-budget" class="text-xs font-semibold uppercase">Budget d'heures (h) :</label>
-                        <input type="number" step="0.5" min="0.5" id="project-hour-budget" class="retro-input w-full text-sm mt-1" value="10">
-                    </div>
-                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="project-hourly-rate" class="text-xs font-semibold uppercase">Taux horaire (€/h) :</label>
-                        <input type="number" step="1" min="0" id="project-hourly-rate" class="retro-input w-full text-sm mt-1" value="35">
+                        <label for="project-client-id" class="text-xs font-semibold uppercase">Client lié :</label>
+                        <select id="project-client-id" required class="retro-input w-full text-sm mt-1">
+                            <option value="">-- Sélectionner un client --</option>
+                        </select>
+                        <p id="project-no-client-hint" class="hidden text-[11px] font-semibold text-[#CC0C33] mt-1">Créez d'abord un client dans l'onglet « Clients ».</p>
                     </div>
                     <div>
+                        <label for="project-type" class="text-xs font-semibold uppercase">Type :</label>
+                        <select id="project-type" class="retro-input w-full text-sm mt-1"></select>
+                    </div>
+                </div>
+                <p id="project-steps-hint" class="text-[11px] font-semibold text-[#1B1A18]/70 -mt-2">Les étapes types de ce genre de projet seront ajoutées automatiquement (modifiables ensuite).</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
                         <label for="project-status" class="text-xs font-semibold uppercase">Statut :</label>
-                        <select id="project-status" class="retro-input w-full text-sm mt-1">
-                            <option value="En cours">En cours</option>
-                            <option value="En pause">En pause</option>
-                            <option value="Terminé">Terminé</option>
-                        </select>
+                        <select id="project-status" class="retro-input w-full text-sm mt-1"></select>
+                    </div>
+                    <div>
+                        <label for="project-deadline" class="text-xs font-semibold uppercase">Deadline :</label>
+                        <input type="date" id="project-deadline" class="retro-input w-full text-sm mt-1">
+                    </div>
+                </div>
+                <div class="space-y-3 bg-[#CEB694] p-3 border-2 border-[#1B1A18] rounded-[6px]">
+                    <p class="text-xs font-bold uppercase">Temps & prix (optionnels)</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="project-hourly-rate" class="text-[11px] font-semibold uppercase">Taux horaire visé (€/h) :</label>
+                            <input type="number" step="1" min="0" id="project-hourly-rate" class="retro-input w-full text-sm mt-1" value="35">
+                        </div>
+                        <div>
+                            <label for="project-price" class="text-[11px] font-semibold uppercase">Prix du forfait (€) :</label>
+                            <input type="number" step="1" min="0" id="project-price" class="retro-input w-full text-sm mt-1" placeholder="si forfait">
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="project-has-budget" onchange="toggleBudgetInput()" class="w-4 h-4 accent-[#CC0C33]">
+                        <label for="project-has-budget" class="text-[11px] font-semibold uppercase cursor-pointer">Définir un budget d'heures</label>
+                    </div>
+                    <div id="budget-container" class="hidden">
+                        <label for="project-hour-budget" class="text-[11px] font-semibold uppercase">Budget d'heures (h) :</label>
+                        <input type="number" step="0.5" min="0.5" id="project-hour-budget" class="retro-input w-full text-sm mt-1" value="10">
+                        <button type="button" onclick="suggestBudgetFromPrice()" class="text-[11px] underline font-semibold mt-1">Calculer depuis le forfait et le taux</button>
                     </div>
                 </div>
                 <div>
-                    <label for="project-deadline" class="text-xs font-semibold uppercase">Date de fin (Deadline) :</label>
-                    <input type="date" id="project-deadline" class="retro-input w-full text-sm mt-1">
+                    <label for="project-invoice-url" class="text-xs font-semibold uppercase">Lien devis / facture (Qonto, Revolut…) :</label>
+                    <input type="url" id="project-invoice-url" placeholder="https://..." class="retro-input w-full text-sm mt-1">
                 </div>
                 <div>
-                    <label for="project-description" class="text-xs font-semibold uppercase">Description / Notes :</label>
+                    <label for="project-description" class="text-xs font-semibold uppercase">Description courte :</label>
                     <textarea id="project-description" rows="2" class="retro-input w-full text-sm mt-1"></textarea>
                 </div>
                 <div class="flex justify-end gap-3 pt-4">
-                    <button type="button" onclick="closeModal('project-modal')" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
+                    <button type="button" onclick="cancelProjectModal()" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
                     <button type="submit" class="retro-btn px-4 py-2 text-base">Enregistrer</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL : RÉGLAGES & SYNCHRONISATION -->
+    <!-- MODAL : VERSIONS -->
+    <div id="versions-modal" class="modal fixed inset-0 z-[60] bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 space-y-4">
+            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                <h3 class="font-heading text-2xl text-[#1B1A18]">Versions enregistrées</h3>
+                <button onclick="closeModal('versions-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <p class="text-xs text-slate-700">GitHub garde une copie à chaque enregistrement. Restaurer une version remplace les données actuelles (la version actuelle reste elle aussi dans la liste).</p>
+            <div id="versions-list" class="space-y-2 text-sm"></div>
+        </div>
+    </div>
+
+    <!-- MODAL : RÉGLAGES -->
     <div id="config-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5">
             <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 class="font-heading text-2xl text-[#1B1A18]">Réglages & Synchronisation</h3>
+                <h3 class="font-heading text-2xl text-[#1B1A18]">Réglages & synchronisation</h3>
                 <button onclick="closeModal('config-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
 
             <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
                 <div class="space-y-1">
                     <p class="font-heading text-lg">1. Synchronisation GitHub</p>
-                    <p class="text-xs text-slate-700">Vos données sont enregistrées dans un fichier <code>data.json</code> de votre <strong>dépôt PRIVÉ</strong> de données. Ces informations restent uniquement sur cet appareil.</p>
+                    <p class="text-xs text-slate-700">Vos données sont enregistrées dans <code>data.json</code> de votre <strong>dépôt PRIVÉ</strong>. Ces informations restent uniquement sur cet appareil.</p>
                 </div>
                 <div>
                     <label for="gh-username-input" class="text-[11px] font-semibold uppercase block mb-1">Nom d'utilisateur GitHub :</label>
@@ -651,14 +731,17 @@
             </form>
 
             <div class="border-t-2 border-[#1B1A18]/10 pt-4 space-y-3">
-                <p class="font-heading text-lg">3. Sauvegarde manuelle</p>
-                <p class="text-xs text-slate-700">Téléchargez une copie complète de vos données de temps en temps (par sécurité).</p>
+                <p class="font-heading text-lg">3. Sauvegardes</p>
+                <p class="text-xs text-slate-700">Retrouvez une ancienne version (en cas de fausse manip) ou téléchargez une copie complète.</p>
                 <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="openVersionsModal()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
+                        <i data-lucide="history" class="w-4 h-4"></i> Versions GitHub
+                    </button>
                     <button type="button" onclick="exportBackupJSON()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
-                        <i data-lucide="save" class="w-4 h-4"></i> Télécharger une sauvegarde
+                        <i data-lucide="save" class="w-4 h-4"></i> Télécharger
                     </button>
                     <button type="button" onclick="document.getElementById('backup-input').click()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
-                        <i data-lucide="upload" class="w-4 h-4"></i> Restaurer une sauvegarde
+                        <i data-lucide="upload" class="w-4 h-4"></i> Restaurer un fichier
                     </button>
                     <input type="file" id="backup-input" accept="application/json,.json" class="hidden" onchange="importBackupJSON(event)">
                 </div>
