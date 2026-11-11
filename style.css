@@ -1,0 +1,85 @@
+body {
+    background-color: #E3CFB4;
+    color: #1B1A18;
+    font-family: 'Commissioner', sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+}
+h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Passion One', Impact, sans-serif;
+    font-weight: 700;
+}
+.retro-box {
+    background-color: #EFEEEC;
+    border: 2px solid #1B1A18;
+    border-radius: 6px;
+    box-shadow: 3px 3px 0px #1B1A18;
+}
+.retro-box-beige {
+    background-color: #CEB694;
+    border: 2px solid #1B1A18;
+    border-radius: 6px;
+    box-shadow: 3px 3px 0px #1B1A18;
+}
+.retro-btn {
+    background-color: #CC0C33;
+    color: #EFEEEC;
+    border: 2px solid #1B1A18;
+    border-radius: 6px;
+    box-shadow: 2px 2px 0px #1B1A18;
+    font-family: 'Passion One', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.5px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.retro-btn:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0px #1B1A18;
+}
+.retro-btn:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px #1B1A18;
+}
+.retro-btn-secondary {
+    background-color: #EFEEEC;
+    color: #1B1A18;
+    border: 2px solid #1B1A18;
+    border-radius: 6px;
+    box-shadow: 2px 2px 0px #1B1A18;
+    font-family: 'Passion One', sans-serif;
+    font-size: 20px;
+}
+.retro-btn:disabled,
+.retro-btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.retro-input {
+    background-color: #ffffff;
+    border: 2px solid #1B1A18;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Commissioner', sans-serif;
+    color: #1B1A18;
+}
+.retro-input:focus {
+    outline: none;
+    box-shadow: 2px 2px 0px #1B1A18;
+}
+.retro-input:disabled {
+    background-color: #EFEEEC;
+    cursor: not-allowed;
+}
+
+/* --- Éditeur de notes : on remet les styles que Tailwind efface --- */
+#rich-text-editor:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(27, 26, 24, 0.45);
+    pointer-events: none;
+}
+#rich-text-editor h2 { font-size: 1.6rem; margin: 0.8rem 0 0.4rem; }
+#rich-text-editor h3 { font-size: 1.25rem; margin: 0.6rem 0 0.3rem; }
+#rich-text-editor p { margin: 0.25rem 0; }
+#rich-text-editor ul { list-style: disc; padding-left: 1.5rem; margin: 0.4rem 0; }
+#rich-text-editor ol { list-style: decimal; padding-left: 1.5rem; margin: 0.4rem 0; }
+#rich-text-editor pre { white-space: pre-wrap; font-family: 'Commissioner', sans-serif; font-size: 0.9rem; background: #EFEEEC; padding: 0.6rem; border-radius: 4px; }

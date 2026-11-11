@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Phant Studio — Suivi & Gestion Projets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Commissioner:ital,wght@0,400;0,600;0,800;1,400&family=Passion+One:wght@700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+    <!-- En-tête -->
+    <header class="border-b-2 border-[#1B1A18] bg-[#CEB694] sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap gap-3 items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-[6px] bg-[#CC0C33] border-2 border-[#1B1A18] flex items-center justify-center shadow-[2px_2px_0px_#1B1A18]">
+                    <i data-lucide="gamepad-2" class="w-7 h-7 text-[#EFEEEC]"></i>
+                </div>
+                <div>
+                    <h1 class="font-heading text-3xl tracking-wide text-[#1B1A18] flex items-center gap-2">
+                        PHANT STUDIO <span id="app-version" class="text-xs px-2 py-0.5 rounded-[6px] bg-[#EFEEEC] border-2 border-[#1B1A18] font-sans font-semibold">v2.1.0</span>
+                    </h1>
+                    <p class="text-xs font-semibold text-[#1B1A18]/80">Chaque création en fait rêver d’autres.</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <span id="sync-status-badge" class="text-xs font-semibold px-2.5 py-1 rounded-[6px] border-2 border-[#1B1A18] bg-amber-200 text-amber-900 flex items-center gap-1.5 shadow-[1px_1px_0px_#1B1A18]">
+                    <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i> Local uniquement
+                </span>
+                <button onclick="openConfigModal()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
+                    <i data-lucide="settings" class="w-4 h-4 text-[#02968A]"></i> Réglages & Sync
+                </button>
+                <button onclick="exportDataCSV()" class="retro-btn px-3 py-1.5 text-sm flex items-center gap-1.5">
+                    <i data-lucide="download" class="w-4 h-4"></i> CSV
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation par Onglets -->
+    <nav class="border-b-2 border-[#1B1A18] bg-[#E3CFB4]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-3 overflow-x-auto py-3">
+            <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="tab-btn retro-btn px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Tableau de bord
+            </button>
+            <button onclick="switchTab('timer')" id="btn-tab-timer" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
+                <i data-lucide="timer" class="w-5 h-5"></i> Chrono & Notes
+            </button>
+            <button onclick="switchTab('projects')" id="btn-tab-projects" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
+                <i data-lucide="folder-kanban" class="w-5 h-5"></i> Projets
+            </button>
+            <button onclick="switchTab('clients')" id="btn-tab-clients" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
+                <i data-lucide="users" class="w-5 h-5"></i> Clients
+            </button>
+        </div>
+    </nav>
+
+    <!-- Conteneur Principal -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- ONGLET : TABLEAU DE BORD -->
+        <div id="tab-dashboard" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="retro-box p-5 space-y-1">
+                    <p class="text-xs font-semibold text-[#1B1A18]/70 uppercase">Total Heures Travaillées</p>
+                    <h3 class="font-heading text-3xl text-[#1B1A18]" id="dash-total-hours">0h00</h3>
+                </div>
+                <div class="retro-box p-5 space-y-1">
+                    <p class="text-xs font-semibold text-[#1B1A18]/70 uppercase">Valeur Estimée</p>
+                    <h3 class="font-heading text-3xl text-[#1B1A18]" id="dash-total-revenue">0,00 €</h3>
+                </div>
+                <div class="retro-box p-5 space-y-1">
+                    <p class="text-xs font-semibold text-[#1B1A18]/70 uppercase">Projets Actifs</p>
+                    <h3 class="font-heading text-3xl text-[#1B1A18]" id="dash-active-projects">0</h3>
+                </div>
+                <div class="retro-box p-5 space-y-1">
+                    <p class="text-xs font-semibold text-[#1B1A18]/70 uppercase">Clients Enregistrés</p>
+                    <h3 class="font-heading text-3xl text-[#1B1A18]" id="dash-total-clients">0</h3>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 retro-box p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Projets Récents</h2>
+                        <button onclick="switchTab('projects')" class="text-sm font-semibold underline hover:text-[#CC0C33]">Voir tout</button>
+                    </div>
+                    <div id="dash-projects-list" class="space-y-3"></div>
+                </div>
+
+                <div class="retro-box-beige p-6 space-y-4 flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Session Rapide</h2>
+                        <p class="text-sm">Sélectionnez un projet pour lancer directement le chrono.</p>
+                    </div>
+                    <div class="space-y-3">
+                        <select id="quick-project-select" class="retro-input w-full text-sm">
+                            <option value="">-- Sélectionner un projet --</option>
+                        </select>
+                        <button onclick="quickStartTimer()" class="retro-btn w-full py-2.5 text-lg flex items-center justify-center gap-2">
+                            <i data-lucide="play" class="w-5 h-5"></i> Lancer le Chrono
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONGLET : CHRONO & NOTES -->
+        <div id="tab-timer" class="tab-content hidden space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Chronomètre -->
+                <div class="retro-box p-6 space-y-6 flex flex-col items-center text-center">
+                    <div class="w-12 h-12 rounded-[6px] bg-[#CC0C33] border-2 border-[#1B1A18] flex items-center justify-center text-[#EFEEEC] shadow-[2px_2px_0px_#1B1A18]">
+                        <i data-lucide="timer" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Chronomètre</h2>
+                        <p class="text-xs font-semibold">Continue même si vous fermez la page</p>
+                    </div>
+
+                    <div class="w-full space-y-3 text-left">
+                        <label for="timer-project-select" class="text-xs font-semibold uppercase">Projet associé :</label>
+                        <select id="timer-project-select" class="retro-input w-full text-sm" onchange="onTimerFieldChange()">
+                            <option value="">-- Sélectionner un projet --</option>
+                        </select>
+
+                        <label for="timer-category" class="text-xs font-semibold uppercase">Catégorie :</label>
+                        <input type="text" id="timer-category" class="retro-input w-full text-sm" value="Production" list="category-suggestions" oninput="onTimerFieldChange()">
+
+                        <label for="timer-notes" class="text-xs font-semibold uppercase">Notes rapides :</label>
+                        <input type="text" id="timer-notes" class="retro-input w-full text-sm" placeholder="Détails de la session..." oninput="onTimerFieldChange()">
+                    </div>
+
+                    <div class="py-6 w-full bg-[#23211D] text-[#EFEEEC] rounded-[6px] border-2 border-[#1B1A18] shadow-[inset_2px_2px_0px_rgba(0,0,0,0.5)]">
+                        <span id="timer-display" class="font-heading text-5xl tracking-widest text-[#E3CFB4]">00:00:00</span>
+                    </div>
+
+                    <div class="flex items-center gap-2 w-full">
+                        <button id="btn-start-timer" onclick="startTimer()" class="retro-btn flex-1 py-2 text-base">Lancer</button>
+                        <button id="btn-pause-timer" onclick="pauseTimer()" disabled class="retro-btn-secondary flex-1 py-2 text-base">Pause</button>
+                        <button id="btn-stop-timer" onclick="stopTimer()" disabled class="retro-btn flex-1 py-2 text-base bg-[#02968A]">Enregistrer</button>
+                    </div>
+                    <button id="btn-reset-timer" onclick="discardTimer()" disabled class="text-xs underline font-semibold hover:text-[#CC0C33] disabled:opacity-40 disabled:no-underline">Annuler ce chrono sans l'enregistrer</button>
+                </div>
+
+                <!-- Éditeur de Notes Enrichi -->
+                <div class="lg:col-span-2 retro-box p-6 space-y-4 flex flex-col">
+                    <div class="flex flex-wrap gap-2 items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                        <div>
+                            <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Notes & Rédaction</h2>
+                            <p id="notes-save-status" class="text-[11px] font-semibold text-[#1B1A18]/60">Enregistrement automatique</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openDecompilerModal()" title="Décompilateur IA (Scan de conversation / image client)" class="retro-btn px-2.5 py-1 text-sm flex items-center gap-1 bg-[#D1A802] text-[#1B1A18]">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i> <span class="hidden sm:inline">Décompilateur IA</span>
+                            </button>
+                            <button onclick="openSessionsModal()" class="retro-btn-secondary px-3 py-1 text-sm flex items-center gap-1.5">
+                                <i data-lucide="history" class="w-4 h-4"></i> Historique
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Barre d'outils Rich Text -->
+                    <div class="flex flex-wrap gap-2 bg-[#CEB694] p-2 border-2 border-[#1B1A18] rounded-[6px]">
+                        <button onmousedown="event.preventDefault()" onclick="formatText('bold')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] font-bold text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Gras</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('italic')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] italic text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Italique</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('underline')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] underline text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Souligné</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('formatBlock', 'h2')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] font-heading text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Titre</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('formatBlock', 'p')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">Texte</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('insertUnorderedList')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">• Puces</button>
+                        <button onmousedown="event.preventDefault()" onclick="formatText('insertOrderedList')" class="px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] text-xs hover:bg-white shadow-[1px_1px_0px_#1B1A18]">1. Liste</button>
+                        <button onclick="clearNotes()" class="ml-auto px-2.5 py-1 bg-[#EFEEEC] border-2 border-[#1B1A18] rounded-[4px] text-xs hover:bg-white hover:text-[#CC0C33] shadow-[1px_1px_0px_#1B1A18]">Tout effacer</button>
+                    </div>
+
+                    <!-- Zone éditable -->
+                    <div id="rich-text-editor" contenteditable="true" class="retro-input flex-1 min-h-[250px] bg-white overflow-y-auto focus:outline-none p-4" data-placeholder="Écrivez vos notes de réunion, idées ou comptes-rendus ici... (enregistrement automatique)"></div>
+                </div>
+            </div>
+
+            <!-- SECTION : LAYOUT PAR DÉFAUT (Questionnaires prédéfinis) -->
+            <div class="retro-box p-6 space-y-6">
+                <div class="border-b-2 border-[#1B1A18] pb-3 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18] flex items-center gap-2">
+                            <i data-lucide="layout-template" class="w-6 h-6 text-[#CC0C33]"></i> Questionnaires prédéfinis
+                        </h2>
+                        <p class="text-xs font-semibold text-[#1B1A18]/70">Cliquez pour insérer un brief type dans vos notes.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="loadQuestionnaire('mariage')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#CC0C33]">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Mariage
+                        </button>
+                        <button onclick="loadQuestionnaire('affiches')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#02968A]">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Affiches
+                        </button>
+                        <button onclick="loadQuestionnaire('logo')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#D1A802] text-[#1B1A18]">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Logo / DA
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="space-y-4">
+                        <h3 class="font-heading text-xl text-[#EFEEEC] bg-[#CC0C33] px-3 py-1 rounded-[4px] inline-block">Brief Mariage & Papeterie</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">1. Vision & Univers</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Date & lieu :</strong> Saison, type de lieu (château, grange, plage...).</li>
+                                    <li><strong>Ambiance :</strong> 3 mots, palette de couleurs, inspirations Pinterest.</li>
+                                    <li><strong>Histoire du couple :</strong> Anecdotes, symboles à intégrer.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">2. Besoins en Papeterie</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Avant :</strong> Save the date, faire-part, RSVP.</li>
+                                    <li><strong>Jour J :</strong> Livrets, plan de table, menus, signalétique.</li>
+                                    <li><strong>Après :</strong> Cartes de remerciement.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">3. Technique & Logistique</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Quantités :</strong> Nombre de foyers + marge.</li>
+                                    <li><strong>Textes :</strong> Rédaction, bilinguisme.</li>
+                                    <li><strong>Fabrication :</strong> Formats, papiers, finitions.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">4. Calendrier & Budget</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Planning d'envoi :</strong> Dates d'envoi souhaitées.</li>
+                                    <li><strong>Budget global :</strong> Fourchette pour la papeterie.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-4 border-t-2 border-[#1B1A18]/20">
+                        <h3 class="font-heading text-xl text-[#D1A802] bg-[#1B1A18] px-3 py-1 rounded-[4px] inline-block">Brief Logo & Identité Visuelle</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">1. Entreprise & Valeurs</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Activité & Histoire :</strong> Présentation du projet/entreprise et sa genèse.</li>
+                                    <li><strong>Cible / Audience :</strong> Qui sont les clients idéaux (profil, âge, style) ?</li>
+                                    <li><strong>Valeurs & Positionnement :</strong> 3 à 5 adjectifs (ex : haut de gamme, accessible, dynamique, éco-responsable).</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">2. Orientations Graphiques</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Style visuel :</strong> Minimaliste, illustré, typographique, emblème, mascotte ?</li>
+                                    <li><strong>Couleurs & Typographies :</strong> Préférences chromatiques ou interdictions strictes.</li>
+                                    <li><strong>Inspirations & Concurrence :</strong> Références appréciées et logos concurrents dont se démarquer.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">3. Livrables & Déclinaisons</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Formats du logo :</strong> Version principale, secondaire/emblème, picto réseaux.</li>
+                                    <li><strong>Charte graphique :</strong> Requise (palette, règles d'usage, typographies) ?</li>
+                                    <li><strong>Supports de communication :</strong> Carte de visite, papier en-tête, réseaux sociaux, packaging...</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">4. Planning & Cession de Droits</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Deadline :</strong> Date limite de livraison finale.</li>
+                                    <li><strong>Droits d'auteur :</strong> Utilisation (web, print, TV, zones géographiques, durée).</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-4 border-t-2 border-[#1B1A18]/20">
+                        <h3 class="font-heading text-xl text-white bg-[#02968A] px-3 py-1 rounded-[4px] inline-block">Brief Affiches & Visuels Événementiels</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">1. Objectif & Message Clé</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Nom de l'événement / Produit :</strong> Titre principal accrocheur.</li>
+                                    <li><strong>Message prioritaire :</strong> Ce que la personne doit retenir en 2 secondes.</li>
+                                    <li><strong>Call to Action (CTA) :</strong> Site web, QR code, billetterie, date & lieu.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">2. Ambiance & Direction Artistique</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Ton & Style :</strong> Illustré 2D/3D, photomontage, typographique, festif, sobre ?</li>
+                                    <li><strong>Contraintes visuelles :</strong> Logos partenaires/sponsors à intégrer.</li>
+                                    <li><strong>Axe créatif :</strong> Ambiance jour/nuit, rétro, moderne, palette imposée.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">3. Spécifications Techniques & Impression</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>Formats d'affichage :</strong> A3, A2, A0, Abribus (120x176), kakemono, bâche ?</li>
+                                    <li><strong>Déclinaisons digitales :</strong> Post & story Instagram, bannière Facebook, web.</li>
+                                    <li><strong>Contraintes imprimeur :</strong> Fonds perdus, profil RVB/CMJN, résolution (300 DPI).</li>
+                                </ul>
+                            </div>
+                            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                                <h4 class="font-heading text-lg text-[#1B1A18]">4. Calendrier de Diffusion</h4>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li><strong>BAT (Bon À Tirer) :</strong> Date limite de validation pour envoi à l'impression.</li>
+                                    <li><strong>Lancement campagne :</strong> Date de début d'affichage public / publication.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONGLET : PROJETS -->
+        <div id="tab-projects" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Gestion des Projets</h2>
+                    <p class="text-xs font-semibold text-[#1B1A18]/70">Cliquez sur un projet pour voir son récapitulatif complet et ses sessions.</p>
+                </div>
+                <button onclick="openProjectModal()" class="retro-btn px-4 py-2 text-lg flex items-center justify-center gap-2">
+                    <i data-lucide="plus" class="w-5 h-5"></i> Nouveau Projet
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-grid"></div>
+        </div>
+
+        <!-- ONGLET : CLIENTS -->
+        <div id="tab-clients" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Gestion des Clients</h2>
+                    <p class="text-xs font-semibold text-[#1B1A18]/70">Coordonnées de facturation et de livraison.</p>
+                </div>
+                <button onclick="openClientModal()" class="retro-btn px-4 py-2 text-lg flex items-center justify-center gap-2">
+                    <i data-lucide="plus" class="w-5 h-5"></i> Nouveau Client
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="clients-grid"></div>
+        </div>
+
+    </main>
+
+    <datalist id="category-suggestions">
+        <option value="Production"></option>
+        <option value="Recherche & croquis"></option>
+        <option value="Rendez-vous client"></option>
+        <option value="Retouches"></option>
+        <option value="Préparation impression"></option>
+        <option value="Administratif"></option>
+    </datalist>
+
+    <!-- MODAL : SESSIONS GLOBAL -->
+    <div id="sessions-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-4xl max-h-[85vh] overflow-y-auto p-6 space-y-6">
+            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                <h3 class="font-heading text-2xl text-[#1B1A18]">Historique des Sessions de Travail</h3>
+                <button onclick="closeModal('sessions-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="flex justify-end">
+                <button onclick="openManualSessionModal()" class="retro-btn px-3 py-1.5 text-sm flex items-center gap-1.5">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Ajouter une session manuelle
+                </button>
+            </div>
+            <div class="overflow-x-auto bg-white border-2 border-[#1B1A18] rounded-[6px]">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-[#CEB694] text-[#1B1A18] font-heading text-base border-b-2 border-[#1B1A18]">
+                        <tr>
+                            <th class="py-2 px-4">Date</th>
+                            <th class="py-2 px-4">Projet</th>
+                            <th class="py-2 px-4">Catégorie</th>
+                            <th class="py-2 px-4">Durée</th>
+                            <th class="py-2 px-4">Notes</th>
+                            <th class="py-2 px-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessions-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : DÉCOMPILATEUR CONVERSATION IA -->
+    <div id="decompiler-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 space-y-6">
+            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                <h3 class="font-heading text-2xl text-[#1B1A18] flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-6 h-6 text-[#D1A802]"></i> Décompilateur IA de Conversation Client
+                </h3>
+                <button onclick="closeModal('decompiler-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+
+            <div id="decompiler-no-key" class="hidden bg-amber-100 border-2 border-[#1B1A18] rounded-[6px] p-3 text-xs font-semibold">
+                ⚠️ Aucune clé Gemini enregistrée sur cet appareil. Ajoutez-la dans <button onclick="closeModal('decompiler-modal'); openConfigModal();" class="underline">Réglages & Sync</button> (section « Décompilateur IA »).
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div id="drop-zone" onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-[#1B1A18] bg-white rounded-[6px] p-6 text-center cursor-pointer hover:bg-[#EFEEEC] transition flex flex-col items-center justify-center min-h-[220px] space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+                        <i data-lucide="image-plus" class="w-10 h-10 text-[#CC0C33]"></i>
+                        <div>
+                            <p class="font-heading text-lg">Dépose ta capture ici</p>
+                            <p class="text-xs text-slate-600">SMS, WhatsApp, mail, notes manuscrites</p>
+                        </div>
+                        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                    </div>
+
+                    <div id="image-preview-container" class="hidden space-y-2">
+                        <p class="text-xs font-semibold uppercase">Aperçu de la capture :</p>
+                        <img id="image-preview" alt="Aperçu" class="max-h-48 w-full object-contain rounded-[6px] border-2 border-[#1B1A18] bg-white p-2">
+                        <button onclick="analyzeImageWithGemini()" id="btn-analyze" class="retro-btn w-full py-2 text-base flex items-center justify-center gap-2 bg-[#02968A]">
+                            <i data-lucide="wand-2" class="w-4 h-4"></i> Décompiler avec l'IA
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div id="analysis-loading" class="hidden retro-box p-6 text-center space-y-3">
+                        <div class="inline-block animate-spin rounded-full h-7 w-7 border-4 border-[#CC0C33] border-t-transparent"></div>
+                        <p class="font-heading text-base">Extraction du brief par l'IA...</p>
+                    </div>
+
+                    <div id="analysis-result-container" class="retro-box p-4 space-y-3 hidden bg-white">
+                        <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-2">
+                            <h4 class="font-heading text-lg text-[#1B1A18]">Résultat</h4>
+                            <button onclick="copyAnalysisToEditor()" class="retro-btn px-2.5 py-1 text-xs bg-[#CC0C33] flex items-center gap-1">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Insérer dans les notes
+                            </button>
+                        </div>
+                        <div id="analysis-text-output" class="text-xs space-y-2 max-h-60 overflow-y-auto whitespace-pre-wrap font-sans"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : RÉCAPITULATIF PROJET -->
+    <div id="project-detail-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6 space-y-6">
+            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                <h3 id="modal-project-title" class="font-heading text-2xl text-[#1B1A18]">Récapitulatif du Projet</h3>
+                <button onclick="closeModal('project-detail-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div id="modal-project-content" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- MODAL : SESSION MANUELLE -->
+    <div id="manual-session-modal" class="modal fixed inset-0 z-[60] bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-md p-6 space-y-6">
+            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                <h3 id="manual-session-modal-title" class="font-heading text-2xl text-[#1B1A18]">Ajouter / Éditer une session</h3>
+                <button onclick="closeModal('manual-session-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <form id="manual-session-form" onsubmit="saveManualSession(event)" class="space-y-4">
+                <input type="hidden" id="manual-session-id">
+                <div>
+                    <label for="manual-project-id" class="text-xs font-semibold uppercase">Projet :</label>
+                    <select id="manual-project-id" required class="retro-input w-full text-sm mt-1"></select>
+                </div>
+                <div>
+                    <label for="manual-date" class="text-xs font-semibold uppercase">Date :</label>
+                    <input type="date" id="manual-date" required class="retro-input w-full text-sm mt-1">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="manual-hours" class="text-xs font-semibold uppercase">Durée (heures) :</label>
+                        <input type="number" step="0.25" min="0.25" id="manual-hours" required placeholder="ex : 1.5" class="retro-input w-full text-sm mt-1">
+                    </div>
+                    <div>
+                        <label for="manual-category" class="text-xs font-semibold uppercase">Catégorie :</label>
+                        <input type="text" id="manual-category" value="Production" list="category-suggestions" class="retro-input w-full text-sm mt-1">
+                    </div>
+                </div>
+                <div>
+                    <label for="manual-notes" class="text-xs font-semibold uppercase">Notes / Descriptif :</label>
+                    <input type="text" id="manual-notes" placeholder="Détails..." class="retro-input w-full text-sm mt-1">
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="closeModal('manual-session-modal')" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
+                    <button type="submit" class="retro-btn px-4 py-2 text-base bg-[#02968A]">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CLIENT -->
+    <div id="client-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-6">
+            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                <h3 id="client-modal-title" class="font-heading text-2xl text-[#1B1A18]">Ajouter un client</h3>
+                <button onclick="closeModal('client-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <form id="client-form" onsubmit="saveClient(event)" class="space-y-4">
+                <input type="hidden" id="client-id">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="client-firstname" class="text-xs font-semibold uppercase">Prénom :</label>
+                        <input type="text" id="client-firstname" required class="retro-input w-full text-sm mt-1">
+                    </div>
+                    <div>
+                        <label for="client-lastname" class="text-xs font-semibold uppercase">Nom :</label>
+                        <input type="text" id="client-lastname" required class="retro-input w-full text-sm mt-1">
+                    </div>
+                </div>
+                <div>
+                    <label for="client-company" class="text-xs font-semibold uppercase">Entreprise :</label>
+                    <input type="text" id="client-company" class="retro-input w-full text-sm mt-1">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="client-email" class="text-xs font-semibold uppercase">Email :</label>
+                        <input type="email" id="client-email" class="retro-input w-full text-sm mt-1">
+                    </div>
+                    <div>
+                        <label for="client-phone" class="text-xs font-semibold uppercase">Téléphone :</label>
+                        <input type="tel" id="client-phone" class="retro-input w-full text-sm mt-1">
+                    </div>
+                </div>
+                <div>
+                    <label for="client-address" class="text-xs font-semibold uppercase">Adresse de facturation :</label>
+                    <textarea id="client-address" rows="2" class="retro-input w-full text-sm mt-1"></textarea>
+                </div>
+                <div>
+                    <label for="client-delivery-address" class="text-xs font-semibold uppercase">Adresse de livraison :</label>
+                    <textarea id="client-delivery-address" rows="2" class="retro-input w-full text-sm mt-1"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="closeModal('client-modal')" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
+                    <button type="submit" class="retro-btn px-4 py-2 text-base">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL PROJET -->
+    <div id="project-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-6">
+            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                <h3 id="project-modal-title" class="font-heading text-2xl text-[#1B1A18]">Ajouter un projet</h3>
+                <button onclick="closeModal('project-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <form id="project-form" onsubmit="saveProject(event)" class="space-y-4">
+                <input type="hidden" id="project-id">
+                <div>
+                    <label for="project-name" class="text-xs font-semibold uppercase">Nom du projet :</label>
+                    <input type="text" id="project-name" required class="retro-input w-full text-sm mt-1">
+                </div>
+                <div>
+                    <label for="project-client-id" class="text-xs font-semibold uppercase">Client lié :</label>
+                    <select id="project-client-id" required class="retro-input w-full text-sm mt-1">
+                        <option value="">-- Sélectionner un client --</option>
+                    </select>
+                    <p id="project-no-client-hint" class="hidden text-[11px] font-semibold text-[#CC0C33] mt-1">Créez d'abord un client dans l'onglet « Clients ».</p>
+                </div>
+                <div class="space-y-2 bg-[#CEB694] p-3 border-2 border-[#1B1A18] rounded-[6px]">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="project-has-budget" onchange="toggleBudgetInput()" class="w-4 h-4 accent-[#CC0C33]">
+                        <label for="project-has-budget" class="text-xs font-semibold uppercase cursor-pointer">Définir un budget d'heures (optionnel)</label>
+                    </div>
+                    <div id="budget-container" class="hidden pt-2">
+                        <label for="project-hour-budget" class="text-xs font-semibold uppercase">Budget d'heures (h) :</label>
+                        <input type="number" step="0.5" min="0.5" id="project-hour-budget" class="retro-input w-full text-sm mt-1" value="10">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="project-hourly-rate" class="text-xs font-semibold uppercase">Taux horaire (€/h) :</label>
+                        <input type="number" step="1" min="0" id="project-hourly-rate" class="retro-input w-full text-sm mt-1" value="35">
+                    </div>
+                    <div>
+                        <label for="project-status" class="text-xs font-semibold uppercase">Statut :</label>
+                        <select id="project-status" class="retro-input w-full text-sm mt-1">
+                            <option value="En cours">En cours</option>
+                            <option value="En pause">En pause</option>
+                            <option value="Terminé">Terminé</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="project-deadline" class="text-xs font-semibold uppercase">Date de fin (Deadline) :</label>
+                    <input type="date" id="project-deadline" class="retro-input w-full text-sm mt-1">
+                </div>
+                <div>
+                    <label for="project-description" class="text-xs font-semibold uppercase">Description / Notes :</label>
+                    <textarea id="project-description" rows="2" class="retro-input w-full text-sm mt-1"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="closeModal('project-modal')" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
+                    <button type="submit" class="retro-btn px-4 py-2 text-base">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL : RÉGLAGES & SYNCHRONISATION -->
+    <div id="config-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5">
+            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                <h3 class="font-heading text-2xl text-[#1B1A18]">Réglages & Synchronisation</h3>
+                <button onclick="closeModal('config-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <p class="font-heading text-lg">1. Synchronisation GitHub</p>
+                    <p class="text-xs text-slate-700">Vos données sont enregistrées dans un fichier <code>data.json</code> de votre <strong>dépôt PRIVÉ</strong> de données. Ces informations restent uniquement sur cet appareil.</p>
+                </div>
+                <div>
+                    <label for="gh-username-input" class="text-[11px] font-semibold uppercase block mb-1">Nom d'utilisateur GitHub :</label>
+                    <input type="text" id="gh-username-input" required autocomplete="username" class="retro-input w-full text-sm" placeholder="ex : mon-pseudo">
+                </div>
+                <div>
+                    <label for="gh-repo-input" class="text-[11px] font-semibold uppercase block mb-1">Nom du dépôt PRIVÉ de données :</label>
+                    <input type="text" id="gh-repo-input" required class="retro-input w-full text-sm" placeholder="ex : phant-studio-data">
+                </div>
+                <div>
+                    <label for="gh-token-input" class="text-[11px] font-semibold uppercase block mb-1">Jeton GitHub (commence par github_pat_) :</label>
+                    <input type="password" id="gh-token-input" required autocomplete="off" class="retro-input w-full text-sm" placeholder="github_pat_...">
+                </div>
+
+                <div class="border-t-2 border-[#1B1A18]/10 pt-4 space-y-3">
+                    <div class="space-y-1">
+                        <p class="font-heading text-lg">2. Décompilateur IA <span class="text-xs font-sans font-semibold">(optionnel)</span></p>
+                        <p class="text-xs text-slate-700">Clé Gemini créée sur aistudio.google.com. Elle reste uniquement dans ce navigateur, jamais dans le code.</p>
+                    </div>
+                    <div>
+                        <label for="gemini-key-input" class="text-[11px] font-semibold uppercase block mb-1">Clé API Gemini :</label>
+                        <input type="password" id="gemini-key-input" autocomplete="off" class="retro-input w-full text-sm" placeholder="AIza... (laisser vide si inutilisé)">
+                    </div>
+                    <div>
+                        <label for="gemini-model-input" class="text-[11px] font-semibold uppercase block mb-1">Modèle Gemini :</label>
+                        <input type="text" id="gemini-model-input" class="retro-input w-full text-sm" placeholder="gemini-flash-latest">
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-between gap-3 pt-2">
+                    <button type="button" onclick="logout()" class="text-xs underline font-semibold hover:text-[#CC0C33]">Oublier le jeton sur cet appareil</button>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="closeModal('config-modal')" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
+                        <button type="submit" class="retro-btn px-4 py-2 text-base bg-[#02968A]">Enregistrer & Sync</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="border-t-2 border-[#1B1A18]/10 pt-4 space-y-3">
+                <p class="font-heading text-lg">3. Sauvegarde manuelle</p>
+                <p class="text-xs text-slate-700">Téléchargez une copie complète de vos données de temps en temps (par sécurité).</p>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="exportBackupJSON()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
+                        <i data-lucide="save" class="w-4 h-4"></i> Télécharger une sauvegarde
+                    </button>
+                    <button type="button" onclick="document.getElementById('backup-input').click()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
+                        <i data-lucide="upload" class="w-4 h-4"></i> Restaurer une sauvegarde
+                    </button>
+                    <input type="file" id="backup-input" accept="application/json,.json" class="hidden" onchange="importBackupJSON(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
