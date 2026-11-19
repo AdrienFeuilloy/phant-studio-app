@@ -50,8 +50,40 @@
     </section>
 
     <aside class="col-widgets">
+      <article class="carte carte-droplets">
+        <h2><span class="pastille rouge"></span>Droplets <small>rien ne quitte ton appareil</small></h2>
+        <div class="droplet-onglets" role="tablist">
+          <button class="droplet-onglet" data-d="web" role="tab">Export web</button>
+          <button class="droplet-onglet" data-d="lego" role="tab">Mosaïque LEGO</button>
+        </div>
+        <div id="opt-web" class="droplet-options">
+          <label>Taille max<select id="d-largeur">
+            <option value="800">800 px</option><option value="1200">1200 px</option>
+            <option value="1600">1600 px</option><option value="2000">2000 px</option><option value="3000">3000 px</option>
+          </select></label>
+          <label>Format<select id="d-format">
+            <option value="image/webp">WebP</option><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option>
+          </select></label>
+          <label class="large">Qualité <span id="d-qualite-val"></span><input id="d-qualite" type="range" min="40" max="95" step="5"></label>
+        </div>
+        <div id="opt-lego" class="droplet-options" hidden>
+          <label>Largeur<select id="d-tenons">
+            <option value="16">16 tenons</option><option value="32">32 tenons</option><option value="48">48 tenons</option>
+            <option value="64">64 tenons</option><option value="96">96 tenons</option><option value="128">128 tenons</option>
+          </select></label>
+          <label class="case"><input id="d-tramage" type="checkbox"> Tramage <small>(dégradés plus doux)</small></label>
+        </div>
+        <label id="zone-depot" class="zone-depot">
+          <input id="fichier-droplet" type="file" accept="image/*" hidden>
+          <span class="zone-icone">⇩</span>
+          <span id="zone-texte">Dépose tes images ici</span>
+          <small>ou clique pour choisir</small>
+        </label>
+        <div id="resultats-droplet" class="resultats"></div>
+        <button id="btn-vider-droplets" class="btn-texte petit">Effacer les résultats</button>
+      </article>
       <article class="carte carte-taches">
-        <h2><span class="pastille rouge"></span>À faire aujourd'hui</h2>
+        <h2><span class="pastille jaune"></span>À faire aujourd'hui</h2>
         <form id="form-tache" class="ligne-ajout">
           <input id="champ-tache" placeholder="Ajouter une tâche… (Entrée)" maxlength="140">
         </form>
@@ -60,7 +92,7 @@
       </article>
 
       <article class="carte carte-devis">
-        <h2><span class="pastille jaune"></span>Devis express</h2>
+        <h2><span class="pastille sable"></span>Devis express</h2>
         <div class="devis-ligne">
           <label>Heures<input id="devis-heures" type="number" min="0" step="0.5" value="4"></label>
           <span class="fois">×</span>
@@ -167,5 +199,6 @@
 
   <script src="astuces.js"></script>
   <script src="app.js"></script>
+  <script src="droplets.js"></script>
 </body>
 </html>
