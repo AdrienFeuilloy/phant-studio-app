@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr" data-mode="sombre">
+<head>
+  <meta charset="utf-8">
+  <title>PHANT. Accueil</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1B1A18">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" href="icons/icon32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Changa:wght@500;700;800&family=Commissioner:wght@300;400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bande" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+
+  <header class="entete">
+    <div class="marque">
+      <span class="logo">PHANT<b>.</b></span>
+      <span class="sous-titre">studio</span>
+    </div>
+    <div class="heure">
+      <div id="horloge" class="horloge">--:--</div>
+      <div id="salut" class="salut"></div>
+    </div>
+    <div class="actions">
+      <span id="meteo" class="meteo" hidden></span>
+      <button id="btn-edition" class="btn-rond" title="Modifier les raccourcis" aria-pressed="false">✎</button>
+      <button id="btn-mode" class="btn-rond" title="Mode clair / sombre">◐</button>
+      <button id="btn-reglages" class="btn-rond" title="Réglages">⚙</button>
+    </div>
+  </header>
+
+  <section class="recherche">
+    <form id="form-recherche" autocomplete="off">
+      <input id="champ-recherche" type="search" placeholder="Cherche sur Google…">
+      <button type="submit" class="btn-go" aria-label="Rechercher">→</button>
+    </form>
+    <div id="moteurs" class="moteurs" role="radiogroup" aria-label="Où chercher"></div>
+  </section>
+
+  <main class="grille">
+    <section class="col-raccourcis">
+      <div id="groupes" class="groupes"></div>
+      <button id="btn-ajout-groupe" class="btn-texte seulement-edition">+ Nouvelle cartouche</button>
+    </section>
+
+    <aside class="col-widgets">
+      <article class="carte carte-taches">
+        <h2><span class="pastille rouge"></span>À faire aujourd'hui</h2>
+        <form id="form-tache" class="ligne-ajout">
+          <input id="champ-tache" placeholder="Ajouter une tâche… (Entrée)" maxlength="140">
+        </form>
+        <ul id="liste-taches" class="liste-taches"></ul>
+        <button id="btn-vider-taches" class="btn-texte petit">Vider les tâches faites</button>
+      </article>
+
+      <article class="carte carte-devis">
+        <h2><span class="pastille jaune"></span>Devis express</h2>
+        <div class="devis-ligne">
+          <label>Heures<input id="devis-heures" type="number" min="0" step="0.5" value="4"></label>
+          <span class="fois">×</span>
+          <label>Taux<input id="devis-taux" type="number" min="0" step="1"></label>
+          <span class="fois">=</span>
+          <output id="devis-prix" class="devis-prix">— €</output>
+        </div>
+        <div class="devis-ligne inverse">
+          <label>Forfait<input id="devis-forfait" type="number" min="0" step="5" placeholder="ex. 250"></label>
+          <span class="fois">→</span>
+          <output id="devis-budget" class="devis-budget">budget d'heures</output>
+        </div>
+      </article>
+
+      <article class="carte carte-astuce">
+        <h2><span class="pastille turquoise"></span>Astuce com du jour</h2>
+        <p id="astuce-texte" class="astuce-texte"></p>
+        <div class="astuce-pied">
+          <span id="astuce-tag" class="tag"></span>
+          <button id="btn-astuce-suivante" class="btn-texte petit">Une autre →</button>
+        </div>
+      </article>
+
+      <article class="carte carte-notes">
+        <h2><span class="pastille sarcelle"></span>Carnet d'idées</h2>
+        <textarea id="notes" placeholder="Une idée d'illu, un nom de client à rappeler, une référence vue sur Pinterest…"></textarea>
+        <div id="notes-etat" class="notes-etat">Enregistré automatiquement</div>
+      </article>
+
+      <article class="carte carte-palette">
+        <h2><span class="pastille sable"></span>Ma charte <small>(clic = copier)</small></h2>
+        <div id="palette" class="palette"></div>
+      </article>
+    </aside>
+  </main>
+
+  <footer class="pied">
+    <span id="pied-texte">PRESS START</span>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Fenêtre : ajouter / modifier un raccourci -->
+  <dialog id="dlg-lien" class="dlg">
+    <form method="dialog" id="form-lien">
+      <h3 id="dlg-lien-titre">Nouveau raccourci</h3>
+      <label>Nom<input id="lien-nom" required maxlength="40"></label>
+      <label>Adresse (URL)<input id="lien-url" required placeholder="https://…"></label>
+      <label>Cartouche<select id="lien-groupe"></select></label>
+      <div class="dlg-boutons">
+        <button type="button" id="lien-supprimer" class="btn-texte danger">Supprimer</button>
+        <span class="espace"></span>
+        <button value="annuler" formnovalidate class="btn-texte">Annuler</button>
+        <button value="ok" class="btn-plein">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Fenêtre : renommer / créer une cartouche -->
+  <dialog id="dlg-groupe" class="dlg">
+    <form method="dialog" id="form-groupe">
+      <h3 id="dlg-groupe-titre">Nouvelle cartouche</h3>
+      <label>Nom<input id="groupe-nom" required maxlength="30"></label>
+      <label>Couleur<select id="groupe-couleur">
+        <option value="rouge">Rouge</option>
+        <option value="jaune">Jaune</option>
+        <option value="turquoise">Turquoise</option>
+        <option value="sarcelle">Sarcelle</option>
+        <option value="sable">Sable</option>
+      </select></label>
+      <div class="dlg-boutons">
+        <button type="button" id="groupe-supprimer" class="btn-texte danger">Supprimer la cartouche</button>
+        <span class="espace"></span>
+        <button value="annuler" formnovalidate class="btn-texte">Annuler</button>
+        <button value="ok" class="btn-plein">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Fenêtre : réglages -->
+  <dialog id="dlg-reglages" class="dlg">
+    <form method="dialog" id="form-reglages">
+      <h3>Réglages</h3>
+      <label>Ton prénom<input id="reg-prenom" maxlength="30"></label>
+      <label>Taux horaire (€)<input id="reg-taux" type="number" min="0" step="1"></label>
+      <label>Ville pour la météo <small>(laisser vide pour masquer)</small><input id="reg-ville" placeholder="ex. Lille"></label>
+      <fieldset class="sauvegarde">
+        <legend>Sauvegarde</legend>
+        <p>Télécharge tout (raccourcis, notes, tâches, réglages) dans un fichier, pour le remettre sur un autre ordi.</p>
+        <div class="dlg-boutons">
+          <button type="button" id="btn-export" class="btn-texte">⬇ Exporter</button>
+          <label class="btn-texte fichier">⬆ Importer<input id="fichier-import" type="file" accept=".json,application/json" hidden></label>
+          <span class="espace"></span>
+          <button type="button" id="btn-reinit" class="btn-texte danger">Tout réinitialiser</button>
+        </div>
+      </fieldset>
+      <div class="dlg-boutons">
+        <span class="espace"></span>
+        <button value="annuler" formnovalidate class="btn-texte">Fermer</button>
+        <button value="ok" class="btn-plein">Enregistrer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="astuces.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
