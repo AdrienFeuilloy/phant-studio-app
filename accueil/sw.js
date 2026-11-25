@@ -1,6 +1,6 @@
 // Permet à l'appli de s'ouvrir même sans réseau.
 // Après une mise à jour des fichiers, change le numéro ci-dessous (v1 → v2…).
-const CACHE = "phant-accueil-v2";
+const CACHE = "phant-accueil-v3";
 const FICHIERS = [
   "./", "index.html", "style.css", "app.js", "astuces.js", "droplets.js", "manifest.webmanifest",
   "icons/icon32.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"
@@ -13,7 +13,7 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys()
-      .then(cles => Promise.all(cles.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(cles => Promise.all(cles.filter(k => k.startsWith("phant-accueil-") && k !== CACHE).map(k => caches.delete(k)))) // ne pas toucher aux caches des autres applis du site
       .then(() => self.clients.claim())
   );
 });

@@ -2,7 +2,7 @@
    - Fichiers de l'appli : réseau d'abord (toujours la dernière version), copie de secours sinon.
    - Polices / icônes / Tailwind : copie locale d'abord, mise à jour en arrière-plan.
    - GitHub et Gemini : jamais interceptés. */
-const CACHE = 'phant-studio-v3';
+const CACHE = 'phant-studio-v4';
 const APP_FILES = ['./', 'index.html', 'script.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 const CDN_HOSTS = ['cdn.tailwindcss.com', 'unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
@@ -13,7 +13,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys()
-            .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+            .then(keys => Promise.all(keys.filter(k => k.startsWith('phant-studio-') && k !== CACHE).map(k => caches.delete(k)))) // ne pas toucher aux caches des autres applis du site
             .then(() => self.clients.claim())
     );
 });

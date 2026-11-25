@@ -201,7 +201,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setupKeyboard();
 
     if (isConfigured()) syncFromGitHub();
-    else updateSyncBadge('warning', 'Local uniquement');
+    else {
+        updateSyncBadge('warning', 'Local uniquement');
+        fetchLoginBlob().then(b => { loginBlob = b; if (b && !isConfigured()) openLoginModal('login'); });
+    }
 
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
         navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker non installé', err));
@@ -526,6 +529,112 @@ function logout() {
     document.getElementById('gh-token-input').value = '';
     updateSyncBadge('warning', 'Local uniquement');
     closeModal('config-modal');
+}
+
+/* ---------------------------------------------------------------------
+   CONNEXION (identifiant + mot de passe, propre à Phant Studio)
+   Le jeton est chiffré (PBKDF2 600 000 itérations + AES-GCM) avec un identifiant
+   et un mot de passe choisis ici, puis publié dans acces.json à la racine de ce
+   dépôt (seul le chiffré est public). Rien n'est partagé avec les autres applis.
+   --------------------------------------------------------------------- */
+const LOGIN_REPO = 'adrienfeuilloy/phant-studio-app';
+const LOGIN_FILE = 'acces.json';
+const LOGIN_ITER = 600000;
+let loginBlob = null;
+let loginMode = 'login';
+
+const u64 = b => btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const d64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+async function loginKey(id, pw, salt) {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(id.trim().toLowerCase() + '|' + pw), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: LOGIN_ITER, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function loginEncrypt(id, pw, data) {
+    const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await loginKey(id, pw, salt), new TextEncoder().encode(JSON.stringify(data))));
+    const all = new Uint8Array(28 + ct.length); all.set(salt); all.set(iv, 16); all.set(ct, 28);
+    return u64(all);
+}
+async function loginDecrypt(id, pw, blob) {
+    const all = d64(blob);
+    return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: all.slice(16, 28) }, await loginKey(id, pw, all.slice(0, 16)), all.slice(28))));
+}
+async function fetchLoginBlob() {
+    try {
+        const r = await fetch(`${LOGIN_FILE}?t=${Date.now()}`, { cache: 'no-store' });
+        if (!r.ok) return null;
+        const j = await r.json();
+        return /^[\w-]{40,}$/.test(j.data || '') ? j.data : null;
+    } catch (e) { return null; }
+}
+
+function openLoginModal(mode) {
+    loginMode = mode;
+    const setup = mode === 'setup';
+    document.getElementById('login-title').textContent = setup ? 'Activer le login' : 'Connexion';
+    document.getElementById('login-intro').textContent = setup
+        ? 'Choisissez un identifiant et un mot de passe propres à Phant Studio (pas ceux de GitHub). Sur un nouvel appareil, il suffira de les saisir.'
+        : 'Votre identifiant et votre mot de passe Phant Studio pour retrouver vos projets sur cet appareil.';
+    document.getElementById('login-confirm-wrap').classList.toggle('hidden', !setup);
+    document.getElementById('login-token-link').classList.toggle('hidden', setup);
+    document.getElementById('login-submit').textContent = setup ? 'Activer' : 'Se connecter';
+    document.getElementById('login-password').setAttribute('autocomplete', setup ? 'new-password' : 'current-password');
+    ['login-id', 'login-password', 'login-confirm'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('login-msg').textContent = '';
+    openModal('login-modal');
+    setTimeout(() => document.getElementById('login-id').focus(), 100);
+}
+
+function openLoginSetup() {
+    if (!isConfigured()) { alert('Enregistrez d\'abord le jeton GitHub dans les réglages.'); return; }
+    closeModal('config-modal');
+    openLoginModal('setup');
+}
+
+async function handleLoginSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('login-id').value.trim();
+    const pw = document.getElementById('login-password').value;
+    const msg = document.getElementById('login-msg');
+    const btn = document.getElementById('login-submit');
+    if (!id) { msg.textContent = 'Indiquez un identifiant.'; return; }
+
+    if (loginMode === 'login') {
+        btn.disabled = true; msg.textContent = 'Déchiffrement…';
+        try {
+            const d = await loginDecrypt(id, pw, loginBlob);
+            ghConfig = { username: d.o, repo: d.r, token: d.k };
+            lsSet(LS.ghToken, d.k); lsSet(LS.ghUser, d.o); lsSet(LS.ghRepo, d.r);
+            fileSha = null; repoPrivacyChecked = false;
+            closeModal('login-modal');
+            syncFromGitHub();
+        } catch (err) { msg.textContent = '✗ Identifiant ou mot de passe incorrect'; }
+        btn.disabled = false;
+        return;
+    }
+
+    if (pw.length < 12) { msg.textContent = 'Mot de passe trop court (12 caractères minimum).'; return; }
+    if (pw !== document.getElementById('login-confirm').value) { msg.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
+    btn.disabled = true; msg.textContent = 'Chiffrement…';
+    try {
+        const blob = await loginEncrypt(id, pw, { o: ghConfig.username, r: ghConfig.repo, k: ghConfig.token });
+        const url = `https://api.github.com/repos/${LOGIN_REPO}/contents/${LOGIN_FILE}`;
+        let sha;
+        const r0 = await ghFetch(url);
+        if (r0.ok) sha = (await r0.json()).sha;
+        const r = await ghFetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: 'Accès chiffré', content: b64EncodeUtf8(JSON.stringify({ v: 1, data: blob }) + '\n'), ...(sha ? { sha } : {}) })
+        });
+        if (!r.ok) throw new GitHubError(r.status, ghErrorText(r.status));
+        msg.textContent = '✓ Activé. Sur un nouvel appareil, ouvrez adrienfeuilloy.github.io/phant-studio-app et connectez-vous (disponible d\'ici une minute).';
+    } catch (err) {
+        msg.textContent = (err.status === 403 || err.status === 404)
+            ? '✗ Le jeton n\'a pas accès au dépôt phant-studio-app. Ajoutez-le à votre jeton GitHub (Repository access, Contents : lecture et écriture), puis réessayez.'
+            : '✗ Échec de la publication (' + err.message + '). Réessayez.';
+    }
+    btn.disabled = false;
 }
 
 /* ---------------------------------------------------------------------
