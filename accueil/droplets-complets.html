@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Droplets complets · PHANT.</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon32.png">
+<style>
+@font-face { font-family: "Changa"; font-weight: 200 800; font-display: swap; src: url("../fonts/changa.woff2") format("woff2"); }
+@font-face { font-family: "Commissioner"; font-weight: 100 900; font-display: swap; src: url("../fonts/commissioner.woff2") format("woff2"); }
+:root {
+  /* Atelier sombre, une seule colonne façon appli téléphone ; chaque outil a sa couleur d'accent. */
+  --bg: #15161a;
+  --panel: #1f2126;
+  --field: #2a2d34;
+  --line: #363a42;
+  --text: #ecebe7;
+  --muted: #9b9ea6;
+  --lego: #d6281a;
+  --web: #36aebf;
+  --ok: #7bd88f;
+  --warn: #f2cd37;
+  --display: "Changa", "Arial Black", Impact, sans-serif;
+  --body: "Commissioner", "Segoe UI", Roboto, sans-serif;
+  --accent: var(--lego);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+body[data-tool="web"] { --accent: var(--web); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.app { max-width: 720px; margin: 0 auto; padding: 16px 16px 120px; display: grid; gap: 14px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { font-family: var(--display); font-size: 22px; margin: 0; letter-spacing: .01em; }
+h1 span { color: var(--accent); }
+.sub { color: var(--muted); font-size: 13px; }
+h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 10px; text-wrap: balance; }
+
+.tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tool { display: grid; gap: 6px; text-align: left; padding: 14px; border-radius: 12px; background: var(--panel); border: 2px solid transparent; cursor: pointer; }
+.tool .badge { font-family: var(--display); font-size: 12px; color: #fff; padding: 4px 8px; border-radius: 6px; justify-self: start; }
+.tool b { font-size: 15px; }
+.tool small { color: var(--muted); font-size: 12px; }
+.tool[aria-pressed="true"] { border-color: var(--accent); background: #262931; }
+
+.panel { background: var(--panel); border-radius: 12px; padding: 14px; display: grid; gap: 12px; }
+.row { display: grid; grid-template-columns: minmax(120px, 42%) 1fr; gap: 10px; align-items: center; }
+.row > label { color: var(--text); font-size: 14px; }
+.row .hint { grid-column: 1 / -1; color: var(--muted); font-size: 12px; margin-top: -6px; }
+input[type="number"], input[type="text"], select { width: 100%; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; min-height: 42px; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.rangewrap { display: grid; grid-template-columns: 1fr 52px; gap: 8px; align-items: center; }
+.rangewrap output { font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
+.check { display: flex; align-items: center; gap: 10px; min-height: 42px; }
+.check input { width: 22px; height: 22px; accent-color: var(--accent); }
+
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { flex: 1 1 auto; padding: 9px 12px; border-radius: 8px; background: var(--field); border: 1px solid var(--line); cursor: pointer; min-height: 42px; }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+.filebtn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; border: 2px dashed var(--line); border-radius: 12px; cursor: pointer; color: var(--muted); text-align: center; }
+.filebtn:hover { border-color: var(--accent); color: var(--text); }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.filename { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; }
+.swatches button { aspect-ratio: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,.08); cursor: pointer; position: relative; }
+.swatches button::after { content: ""; position: absolute; inset: 22%; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.28), 1px 2px 0 rgba(0,0,0,.25); }
+.swatches button[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+
+.summary { font-weight: 600; color: var(--warn); font-variant-numeric: tabular-nums; }
+.preview { background: #0f1013; border-radius: 10px; padding: 10px; display: grid; place-items: center; min-height: 160px; overflow: hidden; }
+.preview svg, .preview img { width: 100%; height: auto; max-height: 70vh; display: block; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { background: var(--field); border-radius: 999px; padding: 4px 10px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.pill b { color: var(--accent); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 500; }
+td.n, th.n { text-align: right; }
+.dot { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1px solid rgba(255,255,255,.15); }
+.tablewrap { overflow-x: auto; }
+
+.results { display: grid; gap: 8px; }
+.res { display: grid; grid-template-columns: 56px 1fr auto; gap: 10px; align-items: center; background: var(--field); border-radius: 10px; padding: 8px; }
+.res img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; background: #0f1013; }
+.res .nm { font-size: 13px; overflow-wrap: anywhere; }
+.res .sz { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.gain { color: var(--ok); font-weight: 600; }
+.gain.bad { color: #ff7a6b; }
+
+.btn { border: 0; border-radius: 10px; padding: 11px 14px; background: var(--field); cursor: pointer; font-weight: 500; min-height: 44px; }
+.btn.primary { background: var(--accent); color: #fff; font-weight: 600; }
+.btn.small { padding: 7px 10px; min-height: 36px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(21,22,26,.94); border-top: 1px solid var(--line); backdrop-filter: blur(6px); }
+.bar .inner { max-width: 720px; margin: 0 auto; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap; gap: 8px; }
+.bar .btn { flex: 1 1 auto; }
+.note { font-size: 12px; color: var(--muted); width: 100%; }
+
+.toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: #2f333b; color: var(--text); padding: 10px 14px; border-radius: 10px; font-size: 14px; max-width: calc(100% - 32px); box-shadow: 0 6px 20px rgba(0,0,0,.4); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.on { opacity: 1; }
+[hidden] { display: none !important; }
+/* accueil + outils génériques */
+header { align-items: center; }
+.retour { background: var(--panel); border: 0; border-radius: 10px; width: 42px; height: 42px; font-size: 20px; cursor: pointer; }
+header h1 { margin-right: auto; }
+.intro { color: var(--muted); margin: 0; font-size: 14px; }
+.cat { display: grid; gap: 10px; margin-top: 18px; }
+.cat h2 { margin: 0; }
+.tuiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tuile { display: grid; gap: 6px; align-content: start; text-align: left; padding: 13px; border-radius: 12px; background: var(--panel); border: 1px solid transparent; cursor: pointer; min-height: 118px; }
+.tuile:hover, .tuile:focus-visible { border-color: var(--line); background: #262931; }
+.tuile .badge, .titre-outil .badge { font-family: var(--display); font-size: 11px; color: #fff; padding: 4px 7px; border-radius: 6px; justify-self: start; letter-spacing: .02em; }
+.tuile b { font-size: 14px; line-height: 1.25; }
+.tuile small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.titre-outil { display: flex; align-items: center; gap: 10px; }
+.h-outil { margin: 0; font-size: 17px; text-transform: none; letter-spacing: 0; color: var(--text); }
+.fichiers { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.fichiers:empty { display: none; }
+.fichiers li { display: grid; grid-template-columns: 24px 1fr auto auto auto; gap: 8px; align-items: center; background: var(--field); border-radius: 8px; padding: 6px 8px; font-size: 13px; }
+.fichiers .num { color: var(--accent); font-weight: 600; }
+.fichiers .nm { overflow-wrap: anywhere; }
+.fichiers .sz { color: var(--muted); font-variant-numeric: tabular-nums; }
+.btn.mini { min-height: 32px; padding: 4px 9px; font-size: 13px; }
+.filebtn.petit { padding: 9px; border-width: 1px; position: relative; }
+input.couleur { width: 64px; height: 42px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--field); }
+.apercu-o:empty { display: none; }
+.apercu-o > img { width: 100%; height: auto; border-radius: 10px; background: #0f1013; display: block; }
+.grille-ap, .rangee-ap, .pages-ap, .bande-ap { display: grid; gap: 8px; }
+.grille-ap { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.rangee-ap { grid-template-columns: repeat(3, 1fr); align-items: end; }
+.pages-ap { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+.pages-ap img { box-shadow: 0 2px 8px rgba(0,0,0,.4); background: #fff; }
+.bande-ap { grid-auto-flow: column; grid-auto-columns: minmax(110px, 1fr); overflow-x: auto; }
+.grille-ap img, .rangee-ap img, .pages-ap img, .bande-ap img { width: 100%; height: auto; border-radius: 6px; display: block; }
+.damier img { background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+.kit { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.kit div { border-radius: 10px; aspect-ratio: 1.4; display: grid; place-items: center; padding: 14%; }
+.kit img { max-width: 100%; max-height: 100%; }
+.swatchs { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.sw { display: grid; gap: 4px; background: var(--field); border: 0; border-radius: 10px; padding: 8px; text-align: left; cursor: pointer; }
+.sw span { height: 54px; border-radius: 6px; }
+.sw b { font-variant-numeric: tabular-nums; font-size: 14px; }
+.sw small { color: var(--muted); }
+.res .ext { width: 56px; height: 56px; border-radius: 6px; background: #0f1013; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--muted); }
+.etat { padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.etat.ok { background: rgba(123,216,143,.15); color: var(--ok); }
+.etat.warn { background: rgba(242,205,55,.15); color: var(--warn); }
+.etat.bad { background: rgba(255,122,107,.15); color: #ff7a6b; }
+.pill.erreur { background: rgba(255,122,107,.15); color: #ff9b8f; }
+pre.liste { white-space: pre-wrap; font-size: 12px; color: var(--muted); background: #0f1013; padding: 10px; border-radius: 8px; max-height: 300px; overflow: auto; margin: 0; }
+.bar[hidden] { display: none !important; }
+
+@media (max-width: 420px) { .row { grid-template-columns: 1fr; gap: 6px; } .row .hint { margin-top: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body data-tool="lego">
+<div class="app">
+  <header>
+    <button class="retour" id="retour" type="button" hidden aria-label="Retour aux outils">←</button>
+    <a class="retour" id="retour-accueil" href="./" aria-label="Retour à l'accueil" style="display:grid;place-items:center;text-decoration:none;color:inherit">⌂</a>
+    <h1>Droplet<span>.</span></h1>
+    <span class="sub" id="h-sous">version téléphone</span>
+  </header>
+
+  <section id="v-accueil" class="view" aria-label="Tous les outils">
+    <p class="intro">Choisissez un outil. Tout est traité sur le téléphone : rien n'est envoyé en ligne.</p>
+    <div id="accueil-cats"></div>
+  </section>
+
+  <!-- ===================== LEGO ===================== -->
+  <section id="v-lego" class="view" aria-label="Mosaïque LEGO">
+    <div style="display:grid;gap:14px">
+      <div class="panel">
+        <h2>Source</h2>
+        <div class="seg" data-seg="mode">
+          <button type="button" data-v="basique">Basique (plaque unie)</button>
+          <button type="button" data-v="image">Depuis une image</button>
+        </div>
+
+        <div data-show="mode=image" style="display:grid;gap:12px">
+          <label class="filebtn" for="f-lego">
+            <input type="file" id="f-lego" accept="image/*">
+            <span>Choisir une image (galerie ou fichiers)</span>
+          </label>
+          <div class="filename" id="lego-filename">Aucune image choisie.</div>
+          <div class="row"><label for="i-largeur">Largeur (tenons)</label><input type="number" id="i-largeur" data-k="largeur" min="8" max="256" inputmode="numeric"></div>
+          <div class="row"><label for="i-hauteur">Hauteur (tenons)</label><input type="number" id="i-hauteur" data-k="hauteur" min="0" max="256" inputmode="numeric">
+            <span class="hint">0 = selon les proportions de l'image.</span></div>
+          <div class="row"><label for="i-cmax">Nombre max de couleurs</label><input type="number" id="i-cmax" data-k="couleurs_max" min="0" max="30" inputmode="numeric">
+            <span class="hint">0 = les 30 couleurs disponibles.</span></div>
+          <div class="row"><label for="i-tramage">Tramage (photos)</label><span class="check"><input type="checkbox" id="i-tramage" data-k="tramage"><span class="sub">adoucit les dégradés</span></span></div>
+        </div>
+
+        <div data-show="mode=basique" style="display:grid;gap:12px">
+          <div>
+            <div class="row" style="margin-bottom:8px"><span>Couleur du fond</span><span class="sub" id="couleur-nom"></span></div>
+            <div class="swatches" id="swatches" role="group" aria-label="Couleur du fond"></div>
+          </div>
+          <div class="row"><label for="i-format">Format</label>
+            <select id="i-format" data-k="page_format"><option>A4</option><option>A5</option><option>A6</option><option>Personnalisé</option></select></div>
+          <div class="row" data-show="page_format!=Personnalisé"><label for="i-orient">Orientation</label>
+            <select id="i-orient" data-k="page_orientation"><option>Portrait</option><option>Paysage</option></select></div>
+          <div class="row" data-show="page_format=Personnalisé"><label for="i-pl">Largeur (cm)</label><input type="number" id="i-pl" data-k="page_l_cm" min="1" max="500" step="0.1" inputmode="decimal"></div>
+          <div class="row" data-show="page_format=Personnalisé"><label for="i-ph">Hauteur (cm)</label><input type="number" id="i-ph" data-k="page_h_cm" min="1" max="500" step="0.1" inputmode="decimal"></div>
+          <div class="row"><label for="i-marge">Marge (mm)</label><input type="number" id="i-marge" data-k="page_marge_mm" min="0" max="100" step="0.5" inputmode="decimal">
+            <span class="hint">Bord que la plupart des imprimantes n'impriment pas : 3 à 5 mm.</span></div>
+          <div class="row"><label for="i-echelle">Taille des tenons</label>
+            <select id="i-echelle" data-k="page_echelle"><option>Réelle LEGO (8 mm)</option><option>Nombre de tenons en largeur</option></select></div>
+          <div class="row" data-show="page_echelle=Nombre de tenons en largeur"><label for="i-ptenons">Tenons en largeur</label><input type="number" id="i-ptenons" data-k="page_tenons" min="1" max="256" inputmode="numeric"></div>
+          <div class="summary" id="page-summary"></div>
+        </div>
+
+        <div class="row"><label for="i-plaque">Plaque de base grise autour</label><span class="check"><input type="checkbox" id="i-plaque" data-k="plaque"></span></div>
+      </div>
+
+      <div class="panel">
+        <h2>Marquage des tenons</h2>
+        <div class="seg" data-seg="marquage">
+          <button type="button" data-v="aucun">Lisses</button>
+          <button type="button" data-v="texte">Texte</button>
+          <button type="button" data-v="logo">Logo SVG</button>
+        </div>
+        <div data-show="marquage=texte" style="display:grid;gap:12px">
+          <div class="row"><label for="i-texte">Texte</label><input type="text" id="i-texte" data-k="texte" maxlength="40" placeholder="ex. PHANT">
+            <span class="hint">Tapez \n pour passer à la ligne.</span></div>
+          <div class="row"><label for="i-police">Police</label><input type="text" id="i-police" data-k="texte_police" list="polices">
+            <span class="hint">Elle doit être installée sur l'appareil qui ouvre le SVG (VectorCraft, navigateur…).</span></div>
+          <datalist id="polices"><option value="Arial Black"><option value="Arial"><option value="Impact"><option value="Roboto"><option value="Georgia"><option value="Verdana"></datalist>
+        </div>
+        <div data-show="marquage=logo" style="display:grid;gap:8px">
+          <label class="filebtn" for="f-logo">
+            <input type="file" id="f-logo" accept=".svg,image/svg+xml">
+            <span>Choisir un logo .svg</span>
+          </label>
+          <div class="filename" id="logo-filename">Aucun logo choisi. Ses couleurs seront remplacées par la teinte de chaque tenon.</div>
+        </div>
+        <div data-show="marquage!=aucun" style="display:grid;gap:12px">
+          <div class="row"><label for="i-ltaille">Taille (% du tenon)</label>
+            <div class="rangewrap"><input type="range" id="i-ltaille" data-k="logo_taille" min="10" max="100" step="1"><output for="i-ltaille" data-out="logo_taille"></output></div></div>
+          <div class="row"><label for="i-lrot">Inclinaison (°)</label>
+            <div class="rangewrap"><input type="range" id="i-lrot" data-k="logo_rotation" min="-180" max="180" step="1"><output for="i-lrot" data-out="logo_rotation"></output></div></div>
+          <div class="row"><label for="i-lstyle">Rendu</label>
+            <select id="i-lstyle" data-k="logo_style"><option>Relief</option><option>Plus clair</option><option>Plus foncé</option></select></div>
+          <div class="row"><label for="i-lobj">Logo en objets séparés</label><span class="check"><input type="checkbox" id="i-lobj" data-k="logo_objets"><span class="sub">si VectorCraft ne l'affiche pas</span></span></div>
+        </div>
+      </div>
+
+      <div class="panel" style="order:-1">
+        <h2>Résultat</h2>
+        <div class="stats" id="lego-stats"></div>
+        <div class="preview" id="lego-preview"><span class="sub">Préparation de l'aperçu…</span></div>
+        <div class="tablewrap"><table id="lego-pieces"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== OUTIL GÉNÉRIQUE ===================== -->
+  <section id="v-outil" class="view" aria-labelledby="o-titre" hidden>
+    <div style="display:grid;gap:14px">
+      <div class="panel">
+        <div class="titre-outil"><span class="badge" id="o-badge"></span><h2 id="o-titre" class="h-outil"></h2></div>
+        <p class="filename" id="o-desc"></p>
+        <label class="filebtn" for="f-outil">
+          <input type="file" id="f-outil">
+          <span id="o-choisir">Choisir une image</span>
+        </label>
+        <ol class="fichiers" id="o-fichiers"></ol>
+      </div>
+      <div class="panel" style="order:2">
+        <h2>Réglages</h2>
+        <div id="o-options" style="display:grid;gap:12px"></div>
+      </div>
+      <div class="panel" style="order:1">
+        <h2>Résultat</h2>
+        <div class="stats" id="o-stats"></div>
+        <div class="apercu-o" id="o-apercu"></div>
+        <div class="results" id="o-sorties"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="bar">
+  <div class="inner" id="bar-lego">
+    <button class="btn primary" id="s-svg" disabled>SVG</button>
+    <button class="btn" id="s-png" disabled>PNG</button>
+    <button class="btn" id="s-csv" disabled>Pièces (CSV)</button>
+    <button class="btn" id="s-zip" disabled>Tout (.zip)</button>
+    <div class="note" id="dl-note-lego" hidden></div>
+  </div>
+  <div class="inner" id="bar-outil" hidden>
+    <button class="btn primary" id="s-ozip" disabled>Enregistrer</button>
+    <div class="note" id="dl-note-outil" hidden></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ---------------- Palette LEGO (nom, id BrickLink, hex Rebrickable) ---------------- */
+const PALETTE = [
+  ["Blanc",1,"FFFFFF"],["Gris clair bleuté",86,"A0A5A9"],["Gris foncé bleuté",85,"6C6E68"],["Noir",11,"05131D"],
+  ["Rouge",5,"C91A09"],["Rouge foncé",59,"720E0F"],["Orange",4,"FE8A18"],["Jaune",3,"F2CD37"],["Jaune clair",103,"F8F184"],
+  ["Beige (Tan)",2,"E4CD9E"],["Beige foncé",69,"958A73"],["Medium Nougat",150,"AA7D55"],["Nougat",28,"D09168"],
+  ["Brun rougeâtre",88,"582A12"],["Brun foncé",120,"352100"],["Vert",6,"237841"],["Vert foncé",80,"184632"],
+  ["Vert vif",36,"4B9F4A"],["Lime",34,"BBE90B"],["Olive",155,"9B9A5A"],["Bleu",7,"0055BF"],["Bleu foncé",63,"0A3463"],
+  ["Bleu moyen",42,"5A93DB"],["Medium Azure",156,"36AEBF"],["Light Aqua",152,"ADC3C0"],["Medium Lavender",157,"AC78BA"],
+  ["Violet foncé",89,"3F3691"],["Rose",104,"E4ADC8"],["Magenta",71,"923978"],["Corail",220,"FF698F"]
+];
+const PLAQUE_HEX = "6C6E68", TAILLE_PX = 20;
+const FORMATS_MM = { A4: [210, 297], A5: [148, 210], A6: [105, 148] };
+
+/* ---------------- Réglages (mémorisés sur ce téléphone si possible) ---------------- */
+const DEFAUTS = {
+  mode: "basique", largeur: 48, hauteur: 0, couleurs_max: 0, tramage: false, plaque: true,
+  basique_couleur: "Rouge", page_format: "A6", page_orientation: "Portrait", page_l_cm: 20, page_h_cm: 20,
+  page_marge_mm: 5, page_echelle: "Réelle LEGO (8 mm)", page_tenons: 16,
+  marquage: "texte", texte: "PHANT", texte_police: "Arial Black",
+  logo_taille: 80, logo_rotation: -20, logo_style: "Relief", logo_objets: false,
+  w_format: "webp", w_qualite: 80, w_largeur_max: 1920, w_responsive: false
+};
+let S = { ...DEFAUTS };
+try { Object.assign(S, JSON.parse(localStorage.getItem("droplet-mobile") || "{}")); } catch (e) {}
+function memoriser() { try { localStorage.setItem("droplet-mobile", JSON.stringify(S)); } catch (e) {} }
+
+/* ---------------- Utilitaires ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const rgb = h => [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16));
+const hex2 = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0").toUpperCase();
+const mix = (h, f, vers = 0) => rgb(h).map(v => hex2(v + (vers - v) * f)).join("");
+const lum = h => { const [r, g, b] = rgb(h); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
+const fmtNb = v => (+v).toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+const octets = n => n < 1024 ? n + " o" : n < 1048576 ? Math.round(n / 1024) + " Ko" : (n / 1048576).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " Mo";
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const g = v => +(+v).toFixed(3);
+let toastT;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 3200); }
+
+function lab(r, g_, b) {
+  const f = c => { c /= 255; return c > 0.04045 ? Math.pow((c + 0.055) / 1.055, 2.4) : c / 12.92; };
+  const R = f(r), G = f(g_), B = f(b);
+  let x = (0.4124 * R + 0.3576 * G + 0.1805 * B) / 0.95047, y = 0.2126 * R + 0.7152 * G + 0.0722 * B, z = (0.0193 * R + 0.1192 * G + 0.9505 * B) / 1.08883;
+  const h = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  x = h(x); y = h(y); z = h(z);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+
+/* ---------------- Quantification ---------------- */
+function quantifier(px, w, h, palette, tramage) {
+  const pr = palette.map(p => rgb(p[2])), pl = pr.map(c => lab(...c));
+  const plus_proche = (r, g_, b) => {
+    const L = lab(r, g_, b); let best = 0, bd = Infinity;
+    for (let k = 0; k < pl.length; k++) { const d = (L[0] - pl[k][0]) ** 2 + (L[1] - pl[k][1]) ** 2 + (L[2] - pl[k][2]) ** 2; if (d < bd) { bd = d; best = k; } }
+    return best;
+  };
+  const idx = new Int32Array(w * h);
+  if (!tramage) { for (let i = 0; i < w * h; i++) idx[i] = plus_proche(px[i * 3], px[i * 3 + 1], px[i * 3 + 2]); return idx; }
+  const wk = Float32Array.from(px);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x, o = [0, 1, 2].map(c => Math.max(0, Math.min(255, wk[i * 3 + c])));
+    const k = plus_proche(...o); idx[i] = k;
+    const err = o.map((v, c) => v - pr[k][c]);
+    const add = (xx, yy, f) => { if (xx < 0 || xx >= w || yy >= h) return; const j = (yy * w + xx) * 3; for (let c = 0; c < 3; c++) wk[j + c] += err[c] * f; };
+    add(x + 1, y, 7 / 16); add(x - 1, y + 1, 3 / 16); add(x, y + 1, 5 / 16); add(x + 1, y + 1, 1 / 16);
+  }
+  return idx;
+}
+
+/* ---------------- Logo / texte : nettoyage et recoloration ---------------- */
+const SVGNS = "http://www.w3.org/2000/svg", XL = "http://www.w3.org/1999/xlink";
+const DEFS_TAGS = new Set(["linearGradient", "radialGradient", "clipPath", "mask", "pattern", "filter", "marker"]);
+const IGNORES = new Set(["title", "desc", "metadata", "script", "style", "foreignObject"]);
+const recol = v => { v = v.trim(); return (v === "none" || v === "transparent") ? v : "currentColor"; };
+function serialiser(n) {
+  if (n.nodeType === 3) return esc(n.nodeValue);
+  if (n.nodeType !== 1 || n.namespaceURI !== SVGNS || IGNORES.has(n.localName)) return "";
+  let a = "";
+  for (const at of n.attributes) {
+    let k = at.localName, v = at.value;
+    if (at.namespaceURI === XL && k === "href") k = "href";
+    else if (at.namespaceURI) continue;
+    if (k.startsWith("on")) continue;
+    if (k === "fill" || k === "stroke") v = recol(v);
+    else if (k === "style") v = v.replace(/\b(fill|stroke)\s*:\s*([^;]+)/g, (m, p, val) => p + ":" + recol(val));
+    else if (["stop-color", "flood-color", "lighting-color", "color"].includes(k)) v = "currentColor";
+    if (k === "id") v = "logo-" + v;
+    else { v = v.replace(/url\(\s*#/g, "url(#logo-"); if (k === "href" && v.startsWith("#")) v = "#logo-" + v.slice(1); }
+    if (k === "href" && !v.startsWith("#")) continue;
+    a += ` ${k}="${esc(v)}"`;
+  }
+  const inner = [...n.childNodes].map(serialiser).join("");
+  return `<${n.localName}${a}>${inner}</${n.localName}>`;
+}
+function logoDepuisSvg(texte) {
+  const doc = new DOMParser().parseFromString(texte, "image/svg+xml");
+  const root = doc.documentElement;
+  if (!root || root.localName !== "svg" || doc.querySelector("parsererror")) throw new Error("ce fichier n'est pas un SVG lisible");
+  let vb = root.getAttribute("viewBox");
+  if (vb) vb = vb.replace(/,/g, " ").trim().split(/\s+/).join(" ");
+  else {
+    const w = parseFloat(root.getAttribute("width")), h = parseFloat(root.getAttribute("height"));
+    if (!(w && h)) throw new Error("le SVG n'a ni viewBox ni largeur/hauteur");
+    vb = `0 0 ${w} ${h}`;
+  }
+  const css = !!root.getElementsByTagNameNS(SVGNS, "style").length;
+  let defs = "", contenu = "";
+  for (const c of root.children) {
+    if (c.namespaceURI !== SVGNS) continue;
+    if (c.localName === "defs") defs += [...c.children].map(serialiser).join("");
+    else if (DEFS_TAGS.has(c.localName)) defs += serialiser(c);
+    else contenu += serialiser(c);
+  }
+  if (!contenu.trim()) throw new Error("le SVG ne contient aucune forme visible");
+  return { vb, defs, contenu, css };
+}
+const mesure = document.createElement("canvas").getContext("2d");
+function logoTexte(texte, police) {
+  const lignes = texte.replace(/\\n/g, "\n").split("\n").filter(l => l.trim());
+  if (!lignes.length) return null;
+  const famille = `'${police.replace(/'/g, "")}', 'Arial Black', Arial, sans-serif`;
+  mesure.font = `900 100px ${famille}`;
+  const larg = Math.max(100, Math.max(...lignes.map(l => mesure.measureText(l).width)) * 1.08);
+  const haut = 100 * (0.9 + 1.05 * (lignes.length - 1));
+  const tspans = lignes.map((l, i) => `<tspan x="${g(larg / 2)}" y="${g(83 + i * 105)}">${esc(l)}</tspan>`).join("");
+  return logoDepuisSvg(`<svg xmlns="${SVGNS}" viewBox="0 0 ${g(larg)} ${g(haut)}"><text font-family="${esc(famille)}" font-weight="900" font-size="100" text-anchor="middle">${tspans}</text></svg>`);
+}
+function teintes(hx, style) {
+  const l = lum(hx);
+  if (style === "Plus foncé") return [[l < 0.08 ? mix(hx, 0.4, 255) : mix(hx, 0.25), 0, 0]];
+  if (style === "Plus clair") return [[l > 0.85 ? mix(hx, 0.15) : mix(hx, 0.3, 255), 0, 0]];
+  return [[mix(hx, 0.35), 0.022, 0.028], [l > 0.9 ? mix(hx, 0.10) : mix(hx, 0.22, 255), 0, 0]];
+}
+
+/* ---------------- Rendu SVG ---------------- */
+function construireSvg(idx, w, h, palette, plaque, logo, page) {
+  let T, W, H, mx, my, unite = "";
+  if (page) { T = page.tenon; W = page.l; H = page.h; mx = (W - w * T) / 2; my = (H - h * T) / 2; unite = "mm"; }
+  else { T = TAILLE_PX; mx = my = plaque ? T / 2 : 0; W = w * T + 2 * mx; H = h * T + 2 * my; }
+  const r = T * 0.30, o = [];
+  o.push(`<svg xmlns="${SVGNS}" xmlns:xlink="${XL}" width="${g(W)}${unite}" height="${g(H)}${unite}" viewBox="0 0 ${g(W)} ${g(H)}">`, "<title>Mosaïque LEGO</title>");
+  let logoA = null;
+  if (logo) {
+    const [vx, vy, vw, vh] = logo.donnees.vb.split(" ").map(Number);
+    const s = 2 * r * logo.taille / 100, ech = s / Math.max(vw, vh);
+    const dx0 = (s - vw * ech) / 2 - vx * ech, dy0 = (s - vh * ech) / 2 - vy * ech, rot = logo.rotation;
+    let defs = logo.donnees.defs;
+    if (!logo.objets) defs += `<symbol id="logo-tenon" viewBox="${logo.donnees.vb}" overflow="visible"><g fill="currentColor">${logo.donnees.contenu}</g></symbol>`;
+    const sansId = logo.donnees.contenu.replace(/\sid="[^"]*"/g, "");
+    if (defs) o.push(`<defs>${defs}</defs>`);
+    logoA = (cx, cy, d) => {
+      const x0 = cx - s / 2 + d[0] * T, y0 = cy - s / 2 + d[1] * T;
+      const tr = rot ? ` transform="rotate(${rot} ${g(cx + d[0] * T)} ${g(cy + d[1] * T)})"` : "";
+      if (!logo.objets) {
+        const u = `<use href="#logo-tenon" xlink:href="#logo-tenon" x="${g(x0)}" y="${g(y0)}" width="${g(s)}" height="${g(s)}"/>`;
+        return rot ? `<g${tr}>${u}</g>` : u;
+      }
+      return `<g${tr}><g transform="translate(${g(x0 + dx0)} ${g(y0 + dy0)}) scale(${g(ech)})" fill="currentColor">${sansId}</g></g>`;
+    };
+  }
+  if (plaque) o.push(`<g id="plaque-de-base"><rect width="${g(W)}" height="${g(H)}" rx="${page ? 0 : g(T * 0.2)}" fill="#${PLAQUE_HEX}"/></g>`);
+  palette.forEach(([nom, cid, hx], k) => {
+    const cases = [];
+    for (let i = 0; i < idx.length; i++) if (idx[i] === k) cases.push([i % w, (i / w) | 0]);
+    if (!cases.length) return;
+    const gid = "couleur-" + nom.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "-");
+    o.push(`<g id="${gid}" data-lego-color-id="${cid}">`);
+    o.push(`<g fill="#${hx}" stroke="#${mix(hx, 0.2)}" stroke-width="${g(T * 0.03)}">`);
+    for (const [x, y] of cases) o.push(`<rect x="${g(mx + x * T + T * 0.015)}" y="${g(my + y * T + T * 0.015)}" width="${g(T * 0.97)}" height="${g(T * 0.97)}"/>`);
+    o.push(`</g><g fill="#${mix(hx, 0.35)}">`);
+    for (const [x, y] of cases) o.push(`<circle cx="${g(mx + (x + .5) * T + T * 0.05)}" cy="${g(my + (y + .5) * T + T * 0.06)}" r="${g(r)}"/>`);
+    o.push(`</g><g fill="#${hx}" stroke="#${mix(hx, 0.35, 255)}" stroke-width="${g(T * 0.035)}">`);
+    for (const [x, y] of cases) o.push(`<circle cx="${g(mx + (x + .5) * T)}" cy="${g(my + (y + .5) * T)}" r="${g(r)}"/>`);
+    o.push("</g>");
+    if (logoA) for (const [coul, dx, dy] of teintes(hx, logo.style)) {
+      o.push(`<g class="logo${dx ? "-ombre" : ""}" color="#${coul}" fill="#${coul}">`);
+      for (const [x, y] of cases) o.push(logoA(mx + (x + .5) * T, my + (y + .5) * T, [dx, dy]));
+      o.push("</g>");
+    }
+    o.push("</g>");
+  });
+  o.push("</svg>");
+  return { svg: o.join("\n"), W, H, mm: !!page };
+}
+
+/* ---------------- Page d'impression (mode basique) ---------------- */
+function calculPage() {
+  const fmt = S.page_format;
+  let L, H;
+  if (FORMATS_MM[fmt]) { [L, H] = FORMATS_MM[fmt]; if ((S.page_orientation === "Paysage") !== (L > H)) [L, H] = [H, L]; }
+  else { L = (+S.page_l_cm || 20) * 10; H = (+S.page_h_cm || 20) * 10; }
+  const marge = Math.max(0, +S.page_marge_mm || 0), ul = L - 2 * marge, uh = H - 2 * marge;
+  if (ul <= 0 || uh <= 0) throw new Error("La marge est plus grande que la page.");
+  let w, tenon;
+  if (S.page_echelle.startsWith("Nombre")) { w = Math.max(1, Math.floor(+S.page_tenons || 16)); tenon = ul / w; }
+  else { tenon = 8; w = Math.floor(ul / tenon); }
+  const h = Math.floor(uh / tenon);
+  if (w < 1 || h < 1) throw new Error("La page est trop petite pour contenir un tenon.");
+  return { fmt, L, H, tenon, w, h };
+}
+
+/* ---------------- Génération LEGO ---------------- */
+let imageLego = null, imageLegoNom = "", logoFichier = null, logoNom = "";
+let RES = null; // dernier résultat {svg, nom, pieces, w, h, mm, W, H}
+
+function marquage() {
+  let donnees = null;
+  if (S.marquage === "texte" && S.texte.trim()) donnees = logoTexte(S.texte, S.texte_police || "Arial Black");
+  else if (S.marquage === "logo" && logoFichier) donnees = logoFichier;
+  if (!donnees) return null;
+  return { donnees, taille: +S.logo_taille, rotation: +S.logo_rotation, style: S.logo_style, objets: !!S.logo_objets };
+}
+
+function pixelsImage(w, h) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+  // réduction progressive pour un échantillonnage propre
+  let src = imageLego, sw = src.width, sh = src.height;
+  while (sw / 2 > w * 2) {
+    const t = document.createElement("canvas"); t.width = Math.round(sw / 2); t.height = Math.round(sh / 2);
+    const tc = t.getContext("2d"); tc.imageSmoothingQuality = "high"; tc.drawImage(src, 0, 0, t.width, t.height);
+    src = t; sw = t.width; sh = t.height;
+  }
+  ctx.imageSmoothingQuality = "high"; ctx.drawImage(src, 0, 0, w, h);
+  const d = ctx.getImageData(0, 0, w, h).data, px = new Float32Array(w * h * 3);
+  for (let i = 0; i < w * h; i++) { const a = d[i * 4 + 3] / 255; for (let k = 0; k < 3; k++) px[i * 3 + k] = d[i * 4 + k] * a + 255 * (1 - a); }
+  return px;
+}
+
+function genererLego() {
+  let idx, w, h, palette, page = null, nom;
+  if (S.mode === "basique") {
+    const p = calculPage();
+    w = p.w; h = p.h; page = { l: p.L, h: p.H, tenon: p.tenon };
+    palette = [PALETTE.find(c => c[0] === S.basique_couleur) || PALETTE[4]];
+    idx = new Int32Array(w * h);
+    nom = `plaque_${S.basique_couleur.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-")}_${p.fmt === "Personnalisé" ? "perso" : p.fmt}`;
+  } else {
+    if (!imageLego) return null;
+    w = Math.max(8, Math.min(256, Math.floor(+S.largeur || 48)));
+    h = Math.floor(+S.hauteur || 0) || Math.max(1, Math.round(imageLego.height * w / imageLego.width));
+    h = Math.min(256, h);
+    const px = pixelsImage(w, h);
+    palette = PALETTE;
+    const n = Math.floor(+S.couleurs_max || 0);
+    if (n > 0 && n < PALETTE.length) {
+      const brut = quantifier(px, w, h, PALETTE, false), cpt = new Array(PALETTE.length).fill(0);
+      brut.forEach(k => cpt[k]++);
+      const garder = cpt.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).slice(0, n).filter(x => x[0] > 0).map(x => x[1]).sort((a, b) => a - b);
+      palette = garder.map(i => PALETTE[i]);
+    }
+    idx = quantifier(px, w, h, palette, !!S.tramage);
+    nom = (imageLegoNom.replace(/\.[^.]+$/, "") || "image") + "_lego";
+  }
+  let logo = null;
+  try { logo = marquage(); } catch (e) { toast("Marquage ignoré : " + e.message); }
+  const rendu = construireSvg(idx, w, h, palette, !!S.plaque, logo, page);
+  const cpt = new Array(palette.length).fill(0); idx.forEach(k => cpt[k]++);
+  const pieces = palette.map((p, k) => [p, cpt[k]]).filter(x => x[1]).sort((a, b) => b[1] - a[1]);
+  return { ...rendu, nom, pieces, w, h, page };
+}
+
+function afficherLego() {
+  let res;
+  try { res = genererLego(); }
+  catch (e) { $("#lego-preview").innerHTML = `<span class="sub">${esc(e.message)}</span>`; RES = null; majBoutons(); return; }
+  RES = res;
+  if (!res) {
+    $("#lego-preview").innerHTML = '<span class="sub">Choisissez une image pour voir la mosaïque.</span>';
+    $("#lego-stats").innerHTML = ""; $("#lego-pieces").innerHTML = ""; majBoutons(); return;
+  }
+  $("#lego-preview").innerHTML = res.svg;
+  const total = res.w * res.h;
+  const taille = res.mm ? `${fmtNb(res.W / 10)} × ${fmtNb(res.H / 10)} cm` : `${Math.round(res.W)} × ${Math.round(res.H)} px`;
+  $("#lego-stats").innerHTML = `<span class="pill"><b>${res.w} × ${res.h}</b> tenons</span><span class="pill"><b>${total.toLocaleString("fr-FR")}</b> pièces</span><span class="pill">${res.pieces.length} couleur${res.pieces.length > 1 ? "s" : ""}</span><span class="pill">${taille}</span>`;
+  $("#lego-pieces").innerHTML = `<thead><tr><th>Couleur</th><th>ID BrickLink</th><th class="n">Quantité</th></tr></thead><tbody>` +
+    res.pieces.map(([[n, id, hx], c]) => `<tr><td><span class="dot" style="background:#${hx}"></span>${esc(n)}</td><td>${id}</td><td class="n">${c.toLocaleString("fr-FR")}</td></tr>`).join("") + "</tbody>";
+  majBoutons();
+}
+
+function resumePage() {
+  if (S.mode !== "basique") return;
+  try {
+    const p = calculPage();
+    $("#page-summary").textContent = `→ ${fmtNb(p.L / 10)} × ${fmtNb(p.H / 10)} cm : ${p.w} × ${p.h} tenons de ${fmtNb(p.tenon)} mm = ${(p.w * p.h).toLocaleString("fr-FR")} pièces`;
+  } catch (e) { $("#page-summary").textContent = e.message; }
+}
+
+function csvPieces(res) {
+  const lignes = [["Couleur", "ID couleur BrickLink", "Hex", "Pièce", "Quantité"]];
+  res.pieces.forEach(([[n, id, hx], c]) => lignes.push([n, id, "#" + hx, "Plate Round 1x1 (4073) ou Plate 1x1 (3024)", c]));
+  lignes.push([], ["TOTAL", "", "", "", res.w * res.h]);
+  return "﻿" + lignes.map(l => l.map(v => /[;"\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(";")).join("\r\n");
+}
+
+async function pngDepuisSvg(res) {
+  const img = new Image();
+  const url = URL.createObjectURL(new Blob([res.svg], { type: "image/svg+xml" }));
+  try {
+    img.src = url; await img.decode();
+    let cw, ch;
+    if (res.mm) { cw = Math.round(res.W / 25.4 * 300); ch = Math.round(res.H / 25.4 * 300); } // 300 dpi
+    else { cw = Math.round(res.W * 2); ch = Math.round(res.H * 2); }
+    const k = Math.min(1, 6000 / Math.max(cw, ch)); cw = Math.round(cw * k); ch = Math.round(ch * k);
+    const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+    c.getContext("2d").drawImage(img, 0, 0, cw, ch);
+    return await new Promise(r => c.toBlob(r, "image/png"));
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* ---------------- ZIP (sans compression) ---------------- */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+async function zip(fichiers) {
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  const d = new Date(), dt = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)), dd = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate());
+  for (const f of fichiers) {
+    const data = f.data instanceof Blob ? new Uint8Array(await f.data.arrayBuffer()) : enc.encode(f.data);
+    const nom = enc.encode(f.name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, dt, true); h.setUint16(12, dd, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+    h.setUint16(26, nom.length, true); h.setUint16(28, 0, true);
+    parts.push(h, nom, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+    c.setUint16(12, dt, true); c.setUint16(14, dd, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+    c.setUint16(28, nom.length, true); c.setUint32(42, off, true);
+    central.push(c, nom);
+    off += 30 + nom.length + data.length;
+  }
+  const taille = central.reduce((s, p) => s + p.byteLength, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, fichiers.length, true); e.setUint16(10, fichiers.length, true);
+  e.setUint32(12, taille, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, e], { type: "application/zip" });
+}
+
+/* ---------------- Enregistrement : téléchargement classique ---------------- */
+let DL = {
+  save: async ({ filename, data }) => {
+    const blob = data instanceof Blob ? data : new Blob([data], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+}, dlPret = true;
+async function enregistrer(filename, data) {
+  if (!DL) { toast("Enregistrement indisponible."); return; }
+  try { await DL.save({ filename, data }); toast("Fichier téléchargé : " + filename); }
+  catch (e) {
+    const c = e && e.code;
+    if (c === "declined") toast("Enregistrement annulé.");
+    else if (c === "rate_limited") toast("Une demande d'enregistrement est déjà ouverte.");
+    else if (c === "too_large") toast("Fichier trop gros pour cet enregistrement.");
+    else toast("Impossible d'enregistrer : " + ((e && e.message) || "erreur inconnue"));
+  }
+}
+function majBoutons() {
+  const ok = !!RES && dlPret && !!DL;
+  ["#s-svg", "#s-png", "#s-csv", "#s-zip"].forEach(s => $(s).disabled = !ok);
+  for (const id of ["#dl-note-lego", "#dl-note-outil"]) {
+    const n = $(id);
+    if (dlPret && !DL) { n.hidden = false; n.textContent = "Enregistrement indisponible."; }
+    else n.hidden = true;
+  }
+  if (typeof majBarreOutil === "function") majBarreOutil();
+}
+
+/* ---------------- Liaison de l'interface ---------------- */
+function majVisibilite() {
+  $$("[data-show]").forEach(el => {
+    const [, k, op, v] = el.dataset.show.match(/^([\w]+)(!?=)(.*)$/);
+    const egal = String(S[k]) === v;
+    el.hidden = op === "=" ? !egal : egal;
+  });
+  $$("[data-seg]").forEach(seg => $$("button", seg).forEach(b => b.setAttribute("aria-pressed", String(S[seg.dataset.seg] === b.dataset.v))));
+  $$("[data-out]").forEach(o => o.textContent = S[o.dataset.out] + (o.dataset.out === "logo_rotation" ? "°" : o.dataset.out === "logo_taille" ? " %" : ""));
+  $("#couleur-nom").textContent = S.basique_couleur;
+  $$("#swatches button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.nom === S.basique_couleur)));
+}
+let tempo;
+function changement(webAussi) {
+  memoriser(); majVisibilite(); resumePage();
+  clearTimeout(tempo);
+  tempo = setTimeout(() => { if (vueActive === "lego") afficherLego(); }, 180);
+}
+$$("[data-k]").forEach(el => {
+  const k = el.dataset.k;
+  if (el.type === "checkbox") el.checked = !!S[k]; else el.value = S[k];
+  el.addEventListener(el.type === "range" || el.type === "text" ? "input" : "change", () => {
+    S[k] = el.type === "checkbox" ? el.checked : (el.type === "number" || el.type === "range") ? (el.value === "" ? DEFAUTS[k] : +el.value) : el.value;
+    changement();
+  });
+  if (el.type === "number") el.addEventListener("input", () => { if (el.value !== "") { S[k] = +el.value; changement(); } });
+});
+$$("[data-seg]").forEach(seg => $$("button", seg).forEach(b => b.addEventListener("click", () => { S[seg.dataset.seg] = b.dataset.v; changement(); })));
+const sw = $("#swatches");
+PALETTE.forEach(([n, , hx]) => {
+  const b = document.createElement("button"); b.type = "button"; b.dataset.nom = n; b.title = n; b.setAttribute("aria-label", n);
+  b.style.background = "#" + hx;
+  b.addEventListener("click", () => { S.basique_couleur = n; changement(); });
+  sw.append(b);
+});
+
+$("#f-lego").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { imageLego = await createImageBitmap(f, { imageOrientation: "from-image" }); imageLegoNom = f.name; $("#lego-filename").textContent = `${f.name} · ${imageLego.width} × ${imageLego.height} px`; S.mode = "image"; changement(); }
+  catch (err) { toast("Image illisible : " + (err.message || "format non pris en charge")); }
+});
+$("#f-logo").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    logoFichier = logoDepuisSvg(await f.text()); logoNom = f.name;
+    $("#logo-filename").textContent = f.name + (logoFichier.css ? " · son CSS interne est ignoré, les formes prennent la couleur du tenon" : "");
+    S.marquage = "logo"; changement();
+  } catch (err) { toast("Logo illisible : " + err.message); }
+});
+$("#s-svg").addEventListener("click", () => RES && enregistrer(RES.nom + ".svg", RES.svg));
+$("#s-csv").addEventListener("click", () => RES && enregistrer(RES.nom + "_pieces.csv", csvPieces(RES)));
+$("#s-png").addEventListener("click", async () => { if (!RES) return; try { enregistrer(RES.nom + "_apercu.png", await pngDepuisSvg(RES)); } catch (e) { toast("Aperçu PNG impossible : " + e.message); } });
+$("#s-zip").addEventListener("click", async () => {
+  if (!RES) return;
+  const f = [{ name: RES.nom + ".svg", data: RES.svg }, { name: RES.nom + "_pieces.csv", data: csvPieces(RES) }];
+  try { f.push({ name: RES.nom + "_apercu.png", data: await pngDepuisSvg(RES) }); } catch (e) {}
+  enregistrer(RES.nom + ".zip", await zip(f));
+});
+
+/* =====================================================================
+   Moteur générique des mini-apps + utilitaires de fichiers (PDF, ICO, ASE)
+   ===================================================================== */
+const OUTILS = [];
+function outil(def) { def.options = def.options || []; OUTILS.push(def); }
+const AUJ = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
+const DISPLAY = "'Changa', 'Arial Black', sans-serif";
+const CORPS = "'Commissioner', Roboto, 'Segoe UI', sans-serif";
+const EXT_OK = new Set("gif png jpg jpeg webp mp4 webm mov txt json md docx pptx epub csv ttf html svg pdf xlsx zip fig".split(" "));
+async function polices() {
+  try { await Promise.all([document.fonts.load(`40px ${DISPLAY}`), document.fonts.load(`600 20px ${CORPS}`), document.fonts.load(`400 20px ${CORPS}`)]); } catch (e) {}
+}
+
+/* ---------- images ---------- */
+function toile(w, h) { const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+function versBlob(c, type = "image/png", q = 0.92) {
+  return new Promise((ok, ko) => c.toBlob(b => b ? ok(b) : ko(new Error("export impossible")), type, q));
+}
+async function chargerImage(f, tailleSvg = 2048) {
+  const estSvg = f.type === "image/svg+xml" || /\.svg$/i.test(f.name || "");
+  if (estSvg) {
+    const txt = await f.text();
+    const doc = new DOMParser().parseFromString(txt, "image/svg+xml").documentElement;
+    let vb = (doc.getAttribute("viewBox") || "").replace(/,/g, " ").trim().split(/\s+/).map(Number);
+    let w = vb.length === 4 ? vb[2] : parseFloat(doc.getAttribute("width")) || 1, h = vb.length === 4 ? vb[3] : parseFloat(doc.getAttribute("height")) || 1;
+    const k = tailleSvg / Math.max(w, h);
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([txt], { type: "image/svg+xml" }));
+    try { img.src = url; await img.decode(); } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+    const c = toile(w * k, h * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); return c;
+  }
+  return await createImageBitmap(f, { imageOrientation: "from-image" });
+}
+function reduire(src, w, h) {
+  let s = src, sw = src.width, sh = src.height;
+  while (sw / 2 > w * 1.5 && sh / 2 > h * 1.5) {
+    const t = toile(sw / 2, sh / 2), x = t.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(s, 0, 0, t.width, t.height);
+    s = t; sw = t.width; sh = t.height;
+  }
+  const c = toile(w, h), x = c.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(s, 0, 0, c.width, c.height); return c;
+}
+function couvrir(ctx, img, x, y, w, h) {
+  const k = Math.max(w / img.width, h / img.height), sw = w / k, sh = h / k;
+  const src = (img.width > w * 2.5 || img.height > h * 2.5) ? reduire(img, img.width * k * 1.2, img.height * k * 1.2) : img;
+  const kk = src.width / img.width;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(src, (img.width - sw) / 2 * kk, (img.height - sh) / 2 * kk, sw * kk, sh * kk, x, y, w, h);
+}
+function contenir(ctx, img, x, y, w, h) {
+  const k = Math.min(w / img.width, h / img.height), dw = img.width * k, dh = img.height * k;
+  const src = (img.width > dw * 2.5) ? reduire(img, dw * 1.2, dh * 1.2) : img;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(src, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  return [x + (w - dw) / 2, y + (h - dh) / 2, dw, dh];
+}
+function pixels(src, w, h, fond = [255, 255, 255]) {
+  const c = reduire(src, w, h), d = c.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, w, h).data;
+  const px = new Float32Array(w * h * 3);
+  for (let i = 0; i < w * h; i++) { const a = d[i * 4 + 3] / 255; for (let k = 0; k < 3; k++) px[i * 3 + k] = d[i * 4 + k] * a + fond[k] * (1 - a); }
+  return px;
+}
+const nomBase = f => (f.name || "fichier").replace(/\.[^.]+$/, "");
+const propre = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w.-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") || "fichier";
+const hexVersRgb = h => { h = h.replace("#", ""); if (h.length === 3) h = h.split("").map(c => c + c).join(""); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); };
+const rgbVersHex = c => c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("").toUpperCase();
+function luminance(c) { return (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255; }
+
+/* ---------- k-means (palette automatique) ---------- */
+function kmeans(px, n, k, iter = 14) {
+  const m = Math.min(n, 12000), step = n / m, pts = new Float32Array(m * 3);
+  for (let i = 0; i < m; i++) { const j = Math.floor(i * step) * 3; pts[i * 3] = px[j]; pts[i * 3 + 1] = px[j + 1]; pts[i * 3 + 2] = px[j + 2]; }
+  const c = [[pts[0], pts[1], pts[2]]];
+  while (c.length < k) { // point le plus éloigné des centres existants
+    let best = 0, bd = -1;
+    for (let i = 0; i < m; i++) { let d = Infinity; for (const q of c) d = Math.min(d, (pts[i * 3] - q[0]) ** 2 + (pts[i * 3 + 1] - q[1]) ** 2 + (pts[i * 3 + 2] - q[2]) ** 2); if (d > bd) { bd = d; best = i; } }
+    if (bd <= 0) break;
+    c.push([pts[best * 3], pts[best * 3 + 1], pts[best * 3 + 2]]);
+  }
+  const lab_ = new Int32Array(m);
+  let cpt = new Array(c.length).fill(0);
+  for (let it = 0; it < iter; it++) {
+    const s = c.map(() => [0, 0, 0]); cpt = new Array(c.length).fill(0);
+    for (let i = 0; i < m; i++) {
+      let best = 0, bd = Infinity;
+      for (let q = 0; q < c.length; q++) { const d = (pts[i * 3] - c[q][0]) ** 2 + (pts[i * 3 + 1] - c[q][1]) ** 2 + (pts[i * 3 + 2] - c[q][2]) ** 2; if (d < bd) { bd = d; best = q; } }
+      lab_[i] = best; cpt[best]++; s[best][0] += pts[i * 3]; s[best][1] += pts[i * 3 + 1]; s[best][2] += pts[i * 3 + 2];
+    }
+    c.forEach((q, i) => { if (cpt[i]) { q[0] = s[i][0] / cpt[i]; q[1] = s[i][1] / cpt[i]; q[2] = s[i][2] / cpt[i]; } });
+  }
+  return c.map((q, i) => ({ rgb: q.map(Math.round), part: cpt[i] / m })).filter(x => x.part > 0).sort((a, b) => b.part - a.part);
+}
+
+/* ---------- PDF minimal (images JPEG + traits) ---------- */
+const MM = 72 / 25.4;
+async function jpegDe(c, q = 0.9) { return new Uint8Array(await (await versBlob(c, "image/jpeg", q)).arrayBuffer()); }
+function creerPdf(pages) { // coordonnées en points, origine en haut à gauche
+  const enc = new TextEncoder(), objs = [], f = v => (+v).toFixed(2);
+  const add = o => { objs.push(o); return objs.length; };
+  const cat = add(null), racine = add(null), kids = [];
+  for (const p of pages) {
+    const ids = p.images.map(im => add([`<< /Type /XObject /Subtype /Image /Width ${im.pw} /Height ${im.ph} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.jpeg.length} >>\nstream\n`, im.jpeg, "\nendstream"]));
+    let cs = "";
+    p.images.forEach((im, i) => { cs += `q ${f(im.w)} 0 0 ${f(im.h)} ${f(im.x)} ${f(p.h - im.y - im.h)} cm /Im${i} Do Q\n`; });
+    if (p.traits && p.traits.length) {
+      cs += `${f(p.epaisseur || 0.3)} w 0 0 0 RG\n`;
+      for (const [x1, y1, x2, y2] of p.traits) cs += `${f(x1)} ${f(p.h - y1)} m ${f(x2)} ${f(p.h - y2)} l S\n`;
+    }
+    const b = enc.encode(cs), cid = add([`<< /Length ${b.length} >>\nstream\n`, b, "\nendstream"]);
+    const boite = (nom, r) => r ? ` /${nom} [${f(r[0])} ${f(p.h - r[1] - r[3])} ${f(r[0] + r[2])} ${f(p.h - r[1])}]` : "";
+    const xo = ids.map((id, i) => `/Im${i} ${id} 0 R`).join(" ");
+    kids.push(add([`<< /Type /Page /Parent ${racine} 0 R /MediaBox [0 0 ${f(p.w)} ${f(p.h)}]${boite("TrimBox", p.trim)}${boite("BleedBox", p.bleed)} /Resources << /XObject << ${xo} >> >> /Contents ${cid} 0 R >>`]));
+  }
+  objs[cat - 1] = [`<< /Type /Catalog /Pages ${racine} 0 R >>`];
+  objs[racine - 1] = [`<< /Type /Pages /Kids [${kids.map(k => k + " 0 R").join(" ")}] /Count ${kids.length} >>`];
+  const parts = [], offs = []; let len = 0;
+  const push = d => { const x = typeof d === "string" ? enc.encode(d) : d; parts.push(x); len += x.length; };
+  push("%PDF-1.4\n%âãÏÓ\n");
+  objs.forEach((o, i) => { offs.push(len); push(`${i + 1} 0 obj\n`); o.forEach(push); push("\nendobj\n"); });
+  const xref = len;
+  let x = `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  offs.forEach(o => x += String(o).padStart(10, "0") + " 00000 n \n");
+  push(x + `trailer\n<< /Size ${objs.length + 1} /Root ${cat} 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts, { type: "application/pdf" });
+}
+
+/* ---------- ICO (entrées PNG) ---------- */
+function creerIco(entrees) { // [{taille, png: Uint8Array}]
+  const n = entrees.length, tete = new DataView(new ArrayBuffer(6 + 16 * n));
+  tete.setUint16(2, 1, true); tete.setUint16(4, n, true);
+  let off = 6 + 16 * n;
+  entrees.forEach((e, i) => {
+    const o = 6 + 16 * i;
+    tete.setUint8(o, e.taille >= 256 ? 0 : e.taille); tete.setUint8(o + 1, e.taille >= 256 ? 0 : e.taille);
+    tete.setUint16(o + 4, 1, true); tete.setUint16(o + 6, 32, true);
+    tete.setUint32(o + 8, e.png.length, true); tete.setUint32(o + 12, off, true); off += e.png.length;
+  });
+  return new Blob([tete, ...entrees.map(e => e.png)], { type: "image/x-icon" });
+}
+
+/* ---------- ASE (nuancier Adobe Swatch Exchange) ---------- */
+function creerAse(couleurs) { // [{nom, rgb}]
+  const blocs = couleurs.map(c => {
+    const nom = c.nom + "\0", l = 2 + nom.length * 2 + 4 + 12 + 2, v = new DataView(new ArrayBuffer(6 + l));
+    v.setUint16(0, 1); v.setUint32(2, l); v.setUint16(6, nom.length);
+    let o = 8; for (const ch of nom) { v.setUint16(o, ch.charCodeAt(0)); o += 2; }
+    "RGB ".split("").forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0))); o += 4;
+    c.rgb.forEach(x => { v.setFloat32(o, x / 255); o += 4; });
+    v.setUint16(o, 2);
+    return v;
+  });
+  const t = new DataView(new ArrayBuffer(12));
+  "ASEF".split("").forEach((ch, i) => t.setUint8(i, ch.charCodeAt(0)));
+  t.setUint16(4, 1); t.setUint16(6, 0); t.setUint32(8, blocs.length);
+  return new Blob([t, ...blocs], { type: "application/octet-stream" });
+}
+
+/* ---------- Triangles (mise en perspective) ---------- */
+function triangle(ctx, img, s, d) {
+  const [[x0, y0], [x1, y1], [x2, y2]] = s, [[u0, v0], [u1, v1], [u2, v2]] = d;
+  const cx = (u0 + u1 + u2) / 3, cy = (v0 + v1 + v2) / 3, e = p => { const dx = p[0] - cx, dy = p[1] - cy, n = Math.hypot(dx, dy) || 1; return [p[0] + dx / n * 0.8, p[1] + dy / n * 0.8]; };
+  ctx.save(); ctx.beginPath();
+  const [a, b, c] = [e([u0, v0]), e([u1, v1]), e([u2, v2])];
+  ctx.moveTo(...a); ctx.lineTo(...b); ctx.lineTo(...c); ctx.closePath(); ctx.clip();
+  const den = x0 * (y2 - y1) - x1 * y2 + x2 * y1 + (x1 - x2) * y0;
+  if (Math.abs(den) < 1e-9) { ctx.restore(); return; }
+  const m11 = -(y0 * (u2 - u1) - y1 * u2 + y2 * u1 + (y1 - y2) * u0) / den, m12 = (y1 * v2 + y0 * (v1 - v2) - y2 * v1 + (y2 - y1) * v0) / den;
+  const m21 = (x0 * (u2 - u1) - x1 * u2 + x2 * u1 + (x1 - x2) * u0) / den, m22 = -(x1 * v2 + x0 * (v1 - v2) - x2 * v1 + (x2 - x1) * v0) / den;
+  const dx = (x0 * (y2 * u1 - y1 * u2) + y0 * (x1 * u2 - x2 * u1) + (x2 * y1 - x1 * y2) * u0) / den, dy = (x0 * (y2 * v1 - y1 * v2) + y0 * (x1 * v2 - x2 * v1) + (x2 * y1 - x1 * y2) * v0) / den;
+  ctx.transform(m11, m12, m21, m22, dx, dy); ctx.drawImage(img, 0, 0); ctx.restore();
+}
+function quadrilatere(ctx, img, coins, n = 18) { // coins : HG, HD, BD, BG
+  const [p0, p1, p2, p3] = coins, W = img.width, H = img.height;
+  const pt = (u, v) => [(1 - v) * ((1 - u) * p0[0] + u * p1[0]) + v * ((1 - u) * p3[0] + u * p2[0]), (1 - v) * ((1 - u) * p0[1] + u * p1[1]) + v * ((1 - u) * p3[1] + u * p2[1])];
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const u0 = i / n, u1 = (i + 1) / n, v0 = j / n, v1 = (j + 1) / n;
+    const s00 = [u0 * W, v0 * H], s10 = [u1 * W, v0 * H], s01 = [u0 * W, v1 * H], s11 = [u1 * W, v1 * H];
+    triangle(ctx, img, [s00, s10, s11], [pt(u0, v0), pt(u1, v0), pt(u1, v1)]);
+    triangle(ctx, img, [s00, s11, s01], [pt(u0, v0), pt(u1, v1), pt(u0, v1)]);
+  }
+}
+
+/* =====================================================================
+   Interface générique d'un outil
+   ===================================================================== */
+let OUTIL = null, FICHIERS = [], SORTIES = [], tourOutil = 0, URLS = [];
+const FICHIERS_OPT = {}; // fichiers choisis dans les réglages (logo de filigrane…)
+function optsDe(def) {
+  const m = ((S.outils || {})[def.id]) || {}, o = {};
+  def.options.forEach(op => { o[op.cle] = op.type === "fichier" ? (FICHIERS_OPT[def.id + ":" + op.cle] || null) : (op.cle in m ? m[op.cle] : op.defaut); });
+  return o;
+}
+function poserOpt(def, cle, v) { S.outils = S.outils || {}; S.outils[def.id] = S.outils[def.id] || {}; S.outils[def.id][cle] = v; memoriser(); }
+
+function construireFormulaire(def) {
+  const box = $("#o-options"); box.innerHTML = "";
+  box.closest(".panel").hidden = !def.options.length;
+  const o = optsDe(def);
+  def.options.forEach(op => {
+    const row = document.createElement("div"); row.className = "row"; row.dataset.cle = op.cle;
+    const id = `o-${def.id}-${op.cle}`;
+    const lab = document.createElement("label"); lab.htmlFor = id; lab.textContent = op.libelle; row.append(lab);
+    let el;
+    if (op.type === "bool") {
+      const w = document.createElement("span"); w.className = "check"; el = document.createElement("input"); el.type = "checkbox"; el.checked = !!o[op.cle]; w.append(el); row.append(w);
+    } else if (op.type === "choix") {
+      el = document.createElement("select"); op.valeurs.forEach(v => { const x = document.createElement("option"); x.textContent = v; el.append(x); }); el.value = o[op.cle]; row.append(el);
+    } else if (op.type === "plage") {
+      const w = document.createElement("div"); w.className = "rangewrap"; el = document.createElement("input"); el.type = "range";
+      el.min = op.min; el.max = op.max; el.step = op.pas || 1; el.value = o[op.cle];
+      const out = document.createElement("output"); out.textContent = o[op.cle] + (op.unite || "");
+      el.addEventListener("input", () => out.textContent = el.value + (op.unite || "")); w.append(el, out); row.append(w);
+    } else if (op.type === "couleur") {
+      el = document.createElement("input"); el.type = "color"; el.value = o[op.cle]; el.className = "couleur"; row.append(el);
+    } else if (op.type === "fichier") {
+      const w = document.createElement("label"); w.className = "filebtn petit"; el = document.createElement("input"); el.type = "file"; el.accept = op.accept || "image/*";
+      const t = document.createElement("span"); t.textContent = o[op.cle] ? o[op.cle].name : "Choisir…"; w.append(el, t); row.append(w);
+      el.addEventListener("change", () => { const f = el.files[0]; if (f) { FICHIERS_OPT[def.id + ":" + op.cle] = f; t.textContent = f.name; relancer(); } });
+    } else {
+      el = document.createElement("input"); el.type = op.type === "texte" ? "text" : "number";
+      if (op.type !== "texte") { el.min = op.min ?? 0; el.max = op.max ?? 100000; el.step = op.type === "nombre" ? "any" : 1; el.inputMode = op.type === "nombre" ? "decimal" : "numeric"; }
+      el.value = o[op.cle]; row.append(el);
+    }
+    el.id = id;
+    if (op.type !== "fichier") el.addEventListener(op.type === "texte" || op.type === "plage" ? "input" : "change", () => {
+      let v = op.type === "bool" ? el.checked : el.value;
+      if (op.type === "int" || op.type === "nombre" || op.type === "plage") { v = parseFloat(String(v).replace(",", ".")); if (isNaN(v)) v = op.defaut; v = Math.max(op.min ?? -Infinity, Math.min(op.max ?? Infinity, v)); if (op.type === "int") v = Math.round(v); }
+      poserOpt(def, op.cle, v); visibilite(def); relancer();
+    });
+    if (op.aide) { const h = document.createElement("span"); h.className = "hint"; h.textContent = op.aide; row.append(h); }
+    box.append(row);
+  });
+  visibilite(def);
+}
+function visibilite(def) {
+  const o = optsDe(def);
+  def.options.forEach(op => {
+    if (!op.si) return;
+    const [k, v, neg] = op.si, egal = Array.isArray(v) ? v.includes(String(o[k])) : String(o[k]) === String(v);
+    const row = $(`#o-options [data-cle="${op.cle}"]`); if (row) row.hidden = neg ? egal : !egal;
+  });
+}
+
+function ouvrirOutil(id) {
+  const def = OUTILS.find(d => d.id === id); if (!def) return false;
+  if (OUTIL !== def) { FICHIERS = []; viderSorties(); }
+  OUTIL = def;
+  document.documentElement.style.setProperty("--accent", def.couleur);
+  $("#o-badge").textContent = def.icone; $("#o-badge").style.background = def.couleur;
+  $("#o-titre").textContent = def.nom; $("#o-desc").textContent = def.longue || def.desc;
+  const fi = $("#f-outil"); fi.accept = def.accept || "image/*"; fi.multiple = !!def.multiple; fi.value = "";
+  $("#o-choisir").textContent = def.choisir || (def.multiple ? "Choisir des images" : "Choisir une image");
+  construireFormulaire(def); listerFichiers();
+  if (!FICHIERS.length) { $("#o-stats").innerHTML = `<span class="sub">${esc(def.vide || "Choisissez un fichier pour commencer.")}</span>`; $("#o-apercu").innerHTML = ""; $("#o-sorties").innerHTML = ""; }
+  majBarreOutil();
+  return true;
+}
+function listerFichiers() {
+  const l = $("#o-fichiers"); l.innerHTML = "";
+  FICHIERS.forEach((f, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="num">${i + 1}</span><span class="nm">${esc(f.name)}</span><span class="sz">${octets(f.size)}</span>`;
+    if (OUTIL && OUTIL.ordre && FICHIERS.length > 1) {
+      const up = document.createElement("button"); up.className = "btn mini"; up.textContent = "↑"; up.setAttribute("aria-label", "Monter " + f.name); up.disabled = i === 0;
+      up.addEventListener("click", () => { [FICHIERS[i - 1], FICHIERS[i]] = [FICHIERS[i], FICHIERS[i - 1]]; listerFichiers(); relancer(); });
+      li.append(up);
+    }
+    const x = document.createElement("button"); x.className = "btn mini"; x.textContent = "✕"; x.setAttribute("aria-label", "Retirer " + f.name);
+    x.addEventListener("click", () => { FICHIERS.splice(i, 1); listerFichiers(); relancer(); });
+    li.append(x); l.append(li);
+  });
+}
+function viderSorties() { URLS.forEach(u => URL.revokeObjectURL(u)); URLS = []; SORTIES = []; }
+let tempoOutil;
+function relancer() { clearTimeout(tempoOutil); tempoOutil = setTimeout(executerOutil, 300); }
+async function executerOutil() {
+  const def = OUTIL; if (!def) return;
+  const tour = ++tourOutil;
+  if (!FICHIERS.length) { viderSorties(); $("#o-stats").innerHTML = `<span class="sub">${esc(def.vide || "Choisissez un fichier pour commencer.")}</span>`; $("#o-apercu").innerHTML = ""; $("#o-sorties").innerHTML = ""; majBarreOutil(); return; }
+  if (def.min && FICHIERS.length < def.min) { $("#o-stats").innerHTML = `<span class="pill">Il faut ${def.min} fichiers (${FICHIERS.length} choisi${FICHIERS.length > 1 ? "s" : ""}).</span>`; return; }
+  $("#o-stats").innerHTML = `<span class="pill">Traitement…</span>`;
+  try {
+    const r = await def.run(def.max ? FICHIERS.slice(0, def.max) : FICHIERS, optsDe(def), { actif: () => tour === tourOutil });
+    if (tour !== tourOutil) return;
+    viderSorties(); SORTIES = r.sorties || [];
+    $("#o-stats").innerHTML = (r.infos || []).map(t => `<span class="pill">${t}</span>`).join("") || "";
+    const ap = $("#o-apercu"); ap.innerHTML = "";
+    if (r.apercu instanceof Node) ap.append(r.apercu);
+    else if (typeof r.apercu === "string") ap.innerHTML = r.apercu;
+    else { const im = SORTIES.find(s => /^image\//.test(s.blob.type)); if (im) { const u = URL.createObjectURL(im.blob); URLS.push(u); ap.innerHTML = `<img src="${u}" alt="Aperçu">`; } }
+    afficherSorties();
+  } catch (e) {
+    if (tour !== tourOutil) return;
+    console.error(e);
+    $("#o-stats").innerHTML = `<span class="pill erreur">${esc(e.message || "Erreur inconnue")}</span>`;
+  }
+  majBarreOutil();
+}
+function afficherSorties() {
+  const l = $("#o-sorties"); l.innerHTML = "";
+  SORTIES.forEach(s => {
+    const el = document.createElement("div"); el.className = "res";
+    let vign = "<span class=\"ext\">" + esc(s.nom.split(".").pop().toUpperCase()) + "</span>";
+    if (/^image\/(png|jpeg|webp|gif|svg)/.test(s.blob.type)) { const u = URL.createObjectURL(s.blob); URLS.push(u); vign = `<img src="${u}" alt="">`; }
+    const ext = s.nom.split(".").pop().toLowerCase();
+    el.innerHTML = `${vign}<div><div class="nm">${esc(s.nom)}</div><div class="sz">${s.info ? s.info + " · " : ""}${octets(s.blob.size)}${EXT_OK.has(ext) ? "" : " · dans le zip"}</div></div>`;
+    const b = document.createElement("button"); b.className = "btn small"; b.textContent = "Enregistrer";
+    b.disabled = !(dlPret && DL) || !EXT_OK.has(ext);
+    b.addEventListener("click", () => enregistrer(s.nom, s.blob));
+    el.append(b); l.append(el);
+  });
+}
+function majBarreOutil() {
+  const n = SORTIES.length, ok = dlPret && !!DL;
+  $("#s-ozip").disabled = !(ok && n);
+  $("#s-ozip").textContent = n > 1 ? `Tout enregistrer (.zip, ${n} fichiers)` : "Enregistrer";
+  $$("#o-sorties .btn").forEach((b, i) => { const s = SORTIES[i]; b.disabled = !ok || !s || !EXT_OK.has(s.nom.split(".").pop().toLowerCase()); });
+}
+$("#f-outil").addEventListener("change", e => {
+  const nouveaux = [...e.target.files];
+  FICHIERS = OUTIL && OUTIL.multiple && OUTIL.ajouter ? FICHIERS.concat(nouveaux) : nouveaux;
+  if (OUTIL && OUTIL.max) FICHIERS = FICHIERS.slice(-OUTIL.max);
+  e.target.value = ""; listerFichiers(); relancer();
+});
+$("#s-ozip").addEventListener("click", async () => {
+  if (!SORTIES.length) return;
+  if (SORTIES.length === 1 && EXT_OK.has(SORTIES[0].nom.split(".").pop().toLowerCase())) return enregistrer(SORTIES[0].nom, SORTIES[0].blob);
+  enregistrer(`${OUTIL.zip || OUTIL.id}_${AUJ}.zip`, await zip(SORTIES.map(s => ({ name: s.nom, data: s.blob }))));
+});
+
+/* ---------- Écran d'accueil ---------- */
+const CATEGORIES = ["Pour les clients", "Instagram & web", "Créatif", "Utilitaires"];
+function construireAccueil() {
+  const box = $("#accueil-cats"); box.innerHTML = "";
+  CATEGORIES.forEach(cat => {
+    const sec = document.createElement("section"); sec.className = "cat";
+    sec.innerHTML = `<h2>${esc(cat)}</h2>`;
+    const grid = document.createElement("div"); grid.className = "tuiles";
+    OUTILS.filter(d => d.cat === cat).forEach(d => {
+      const b = document.createElement("button"); b.className = "tuile"; b.type = "button";
+      b.innerHTML = `<span class="badge" style="background:${d.couleur}">${esc(d.icone)}</span><b>${esc(d.nom)}</b><small>${esc(d.desc)}</small>`;
+      b.addEventListener("click", () => { location.hash = d.id; });
+      grid.append(b);
+    });
+    sec.append(grid); box.append(sec);
+  });
+}
+
+/* =====================================================================
+   Les mini-apps
+   ===================================================================== */
+const ROUGE = "#d6281a", AZUR = "#36aebf", OCRE = "#d9932b", VERT = "#3f9e6a", VIOLET = "#8a63c7", GRIS = "#6f7682";
+const aperçuImgs = (blobs, cls = "grille-ap") => { const d = document.createElement("div"); d.className = cls; blobs.forEach(b => { const i = new Image(); const u = URL.createObjectURL(b); URLS.push(u); i.src = u; i.alt = ""; d.append(i); }); return d; };
+const FORMATS_PAGE = { A3: [297, 420], A4: [210, 297], A5: [148, 210], A6: [105, 148], "Carré 15 cm": [150, 150] };
+
+/* ---------------- LEGO (vue dédiée) ---------------- */
+outil({ id: "lego", cat: "Créatif", nom: "Mosaïque LEGO", icone: "LEGO", couleur: ROUGE, desc: "Image ou plaque unie → SVG vue de dessus + pièces", vue: "lego" });
+
+/* ================= POUR LES CLIENTS ================= */
+outil({
+  id: "planche", cat: "Pour les clients", nom: "Planche de présentation", icone: "PLAN", couleur: "#2f6fd6",
+  desc: "2 à 9 visuels → planche à ta charte, prête à envoyer",
+  longue: "Choisissez jusqu'à 9 visuels : ils sont mis en page sur une planche avec votre nom de studio, le titre du projet et des repères A, B, C. Sortie PNG, et PDF pour le format A4.",
+  multiple: true, ajouter: true, ordre: true, max: 9, choisir: "Ajouter des visuels", zip: "planche",
+  options: [
+    { cle: "studio", libelle: "Studio", type: "texte", defaut: "PhantStudio" },
+    { cle: "titre", libelle: "Titre", type: "texte", defaut: "Propositions" },
+    { cle: "client", libelle: "Client / projet", type: "texte", defaut: "" },
+    { cle: "format", libelle: "Format", type: "choix", valeurs: ["A4 paysage", "A4 portrait", "Carré 1080", "Paysage 1920×1080"], defaut: "A4 paysage" },
+    { cle: "theme", libelle: "Fond", type: "choix", valeurs: ["Clair", "Sombre"], defaut: "Clair" },
+    { cle: "accent", libelle: "Couleur d'accent", type: "couleur", defaut: "#d6281a" },
+    { cle: "reperes", libelle: "Repères A, B, C…", type: "bool", defaut: true },
+    { cle: "prefixe", libelle: "Texte des repères", type: "texte", defaut: "Proposition", si: ["reperes", "true"] },
+    { cle: "logo", libelle: "Logo (optionnel)", type: "fichier", accept: "image/*" },
+  ],
+  async run(fichiers, o) {
+    await polices();
+    const imgs = []; for (const f of fichiers) imgs.push(await chargerImage(f));
+    const [W, H] = { "A4 paysage": [2339, 1654], "A4 portrait": [1654, 2339], "Carré 1080": [1080, 1080], "Paysage 1920×1080": [1920, 1080] }[o.format];
+    const sombre = o.theme === "Sombre", fond = sombre ? "#17181c" : "#f6f4ef", texte = sombre ? "#f1efe9" : "#1d1d1f", doux = sombre ? "#9b9ea6" : "#6b6b70";
+    const c = toile(W, H), x = c.getContext("2d");
+    x.fillStyle = fond; x.fillRect(0, 0, W, H);
+    const u = Math.min(W, H) / 100, m = 6 * u;
+    // en-tête
+    let gx = m;
+    if (o.logo) { try { const lg = await chargerImage(o.logo, 600); const lh = 9 * u, lw = lg.width * lh / lg.height; contenir(x, lg, m, m, Math.min(lw, 30 * u), lh); gx = m + Math.min(lw, 30 * u) + 2.5 * u; } catch (e) {} }
+    x.fillStyle = o.accent; x.font = `600 ${2.3 * u}px ${CORPS}`; x.textBaseline = "alphabetic";
+    x.fillText(o.studio.toUpperCase(), gx, m + 2.6 * u);
+    x.fillStyle = texte; x.font = `${5.6 * u}px ${DISPLAY}`;
+    let titre = o.titre; while (x.measureText(titre).width > W - gx - m - 26 * u && titre.length > 4) titre = titre.slice(0, -2) + "…";
+    x.fillText(titre, gx, m + 8.6 * u);
+    x.textAlign = "right"; x.fillStyle = doux; x.font = `400 ${2.2 * u}px ${CORPS}`;
+    if (o.client) x.fillText(o.client, W - m, m + 2.6 * u);
+    x.fillText(new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }), W - m, m + (o.client ? 5.6 : 2.6) * u);
+    x.textAlign = "left";
+    x.fillStyle = o.accent; x.fillRect(m, m + 11.5 * u, 8 * u, 0.6 * u);
+    // grille : on choisit le nombre de colonnes qui donne les plus grandes images
+    const top = m + 15 * u, bas = H - m - 3 * u, lab = o.reperes ? 4.2 * u : 0, gap = 2.5 * u, n = imgs.length;
+    const aw = W - 2 * m, ah = bas - top, asp = imgs.reduce((s, i) => s + i.width / i.height, 0) / n;
+    let best = { cols: 1, s: 0 };
+    for (let cols = 1; cols <= n; cols++) {
+      const rows = Math.ceil(n / cols), cw = (aw - gap * (cols - 1)) / cols, ch = (ah - gap * (rows - 1)) / rows - lab;
+      const w_ = Math.min(cw, ch * asp), s = w_ * (w_ / asp) * n; if (ch > 0 && s > best.s) best = { cols, s };
+    }
+    const cols = best.cols, rows = Math.ceil(n / cols), cw = (aw - gap * (cols - 1)) / cols, ch = (ah - gap * (rows - 1)) / rows - lab;
+    imgs.forEach((im, i) => {
+      const r = Math.floor(i / cols), col = i % cols, dansLigne = Math.min(cols, n - r * cols);
+      const dec = (cols - dansLigne) * (cw + gap) / 2;
+      const cx = m + dec + col * (cw + gap), cy = top + r * (ch + lab + gap);
+      x.save(); x.shadowColor = "rgba(0,0,0,.18)"; x.shadowBlur = 2 * u; x.shadowOffsetY = 0.6 * u;
+      const k = Math.min(cw / im.width, ch / im.height), dw = im.width * k, dh = im.height * k;
+      x.fillStyle = fond; x.fillRect(cx + (cw - dw) / 2, cy + (ch - dh) / 2, dw, dh); x.restore();
+      const [ix, iy, iw, ih] = contenir(x, im, cx, cy, cw, ch);
+      if (o.reperes) {
+        const lettre = String.fromCharCode(65 + i);
+        x.fillStyle = o.accent; x.font = `${2.4 * u}px ${DISPLAY}`; x.fillText(lettre, ix, iy + ih + 3.3 * u);
+        x.fillStyle = doux; x.font = `500 ${1.9 * u}px ${CORPS}`; x.fillText(`${o.prefixe} ${lettre}`, ix + 3.4 * u, iy + ih + 3.2 * u);
+      }
+    });
+    x.fillStyle = doux; x.font = `400 ${1.6 * u}px ${CORPS}`; x.fillText(`© ${o.studio} · ${new Date().getFullYear()}`, m, H - m + 1.5 * u);
+    const base = propre(`planche_${o.client || o.titre}`);
+    const sorties = [{ nom: base + ".png", blob: await versBlob(c), info: `${W} × ${H} px` }];
+    if (o.format.startsWith("A4")) {
+      const [pw, ph] = o.format === "A4 paysage" ? [297, 210] : [210, 297];
+      sorties.push({ nom: base + ".pdf", blob: creerPdf([{ w: pw * MM, h: ph * MM, images: [{ jpeg: await jpegDe(c, 0.93), pw: W, ph: H, x: 0, y: 0, w: pw * MM, h: ph * MM }] }]), info: "A4 imprimable" });
+    }
+    return { sorties, infos: [`<b>${n}</b> visuel${n > 1 ? "s" : ""}`, `${cols} × ${rows}`, o.format] };
+  }
+});
+
+outil({
+  id: "mockup", cat: "Pour les clients", nom: "Mockup faire-part", icone: "MOCK", couleur: "#b5835a",
+  desc: "Visuel posé en perspective sur papier, bois ou ardoise",
+  longue: "Votre visuel devient une carte posée sur une table, avec ombre et perspective : une photo de présentation sans séance photo.",
+  multiple: true, zip: "mockups",
+  options: [
+    { cle: "fond", libelle: "Fond", type: "choix", valeurs: ["Papier", "Bois clair", "Bois foncé", "Ardoise", "Lin", "Couleur unie"], defaut: "Bois clair" },
+    { cle: "couleur", libelle: "Couleur du fond", type: "couleur", defaut: "#e9e4da", si: ["fond", "Couleur unie"] },
+    { cle: "format", libelle: "Format", type: "choix", valeurs: ["Portrait 1080×1350", "Carré 1080", "Paysage 2000×1500"], defaut: "Portrait 1080×1350" },
+    { cle: "taille", libelle: "Taille de la carte", type: "plage", min: 40, max: 92, defaut: 72, unite: " %" },
+    { cle: "angle", libelle: "Inclinaison", type: "plage", min: -25, max: 25, defaut: -6, unite: "°" },
+    { cle: "persp", libelle: "Perspective", type: "plage", min: 0, max: 40, defaut: 12, unite: " %" },
+    { cle: "bord", libelle: "Bord papier blanc", type: "bool", defaut: true },
+    { cle: "ombre", libelle: "Ombre portée", type: "bool", defaut: true },
+  ],
+  async run(fichiers, o, ctx) {
+    const [W, H] = { "Portrait 1080×1350": [1080, 1350], "Carré 1080": [1080, 1080], "Paysage 2000×1500": [2000, 1500] }[o.format];
+    const fondC = fondTexture(W, H, o.fond, o.couleur), sorties = [];
+    for (const f of fichiers) {
+      if (!ctx.actif()) return {};
+      const im = await chargerImage(f);
+      const lim = 1400, k0 = Math.min(1, lim / Math.max(im.width, im.height));
+      const bord = o.bord ? Math.round(Math.max(im.width, im.height) * k0 * 0.045) : 0;
+      const carte = toile(im.width * k0 + 2 * bord, im.height * k0 + 2 * bord), cx = carte.getContext("2d");
+      cx.fillStyle = "#fbfaf6"; cx.fillRect(0, 0, carte.width, carte.height); contenir(cx, im, bord, bord, im.width * k0, im.height * k0);
+      const lum = cx.createLinearGradient(0, 0, carte.width, carte.height); lum.addColorStop(0, "rgba(255,255,255,.10)"); lum.addColorStop(1, "rgba(0,0,0,.08)");
+      cx.fillStyle = lum; cx.fillRect(0, 0, carte.width, carte.height);
+      const c = toile(W, H), x = c.getContext("2d"); x.drawImage(fondC, 0, 0);
+      const asp = carte.width / carte.height; let h = H * o.taille / 100, w = h * asp; if (w > W * o.taille / 100) { w = W * o.taille / 100; h = w / asp; }
+      const p = o.persp / 100, a = o.angle * Math.PI / 180, ox = W / 2, oy = H / 2 + h * p * 0.08;
+      const loc = [[-w / 2 * (1 - p * 0.55), -h / 2 * (1 - p * 0.25)], [w / 2 * (1 - p * 0.55), -h / 2 * (1 - p * 0.25)], [w / 2, h / 2], [-w / 2, h / 2]];
+      const coins = loc.map(([lx, ly]) => [ox + lx * Math.cos(a) - ly * Math.sin(a), oy + lx * Math.sin(a) + ly * Math.cos(a)]);
+      if (o.ombre) {
+        x.save(); x.filter = `blur(${Math.round(W * 0.018)}px)`; x.fillStyle = "rgba(0,0,0,.42)";
+        x.beginPath(); coins.forEach(([px, py], i) => { const q = [px + W * 0.012, py + W * 0.022]; i ? x.lineTo(...q) : x.moveTo(...q); }); x.closePath(); x.fill(); x.restore();
+      }
+      quadrilatere(x, carte, coins);
+      sorties.push({ nom: propre(nomBase(f)) + "_mockup.jpg", blob: await versBlob(c, "image/jpeg", 0.92), info: `${W} × ${H}` });
+    }
+    return { sorties, apercu: aperçuImgs(sorties.map(s => s.blob)), infos: [`<b>${sorties.length}</b> mockup${sorties.length > 1 ? "s" : ""}`, o.fond] };
+  }
+});
+function fondTexture(W, H, type, couleur) {
+  const c = toile(W, H), x = c.getContext("2d");
+  const base = { "Papier": "#efebe3", "Bois clair": "#c9a27a", "Bois foncé": "#6b4a32", "Ardoise": "#33373b", "Lin": "#d9d2c3", "Couleur unie": couleur }[type];
+  x.fillStyle = base; x.fillRect(0, 0, W, H);
+  let s = 12345; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  if (type.startsWith("Bois")) {
+    const n = 5, pw = W / n;
+    for (let i = 0; i < n; i++) {
+      x.fillStyle = `rgba(${rnd() > .5 ? "255,255,255" : "0,0,0"},${0.03 + rnd() * 0.06})`; x.fillRect(i * pw, 0, pw, H);
+      for (let l = 0; l < 26; l++) {
+        x.strokeStyle = `rgba(0,0,0,${0.03 + rnd() * 0.07})`; x.lineWidth = 0.6 + rnd() * 2.2; x.beginPath();
+        const x0 = i * pw + rnd() * pw, amp = 2 + rnd() * 7, fr = 0.004 + rnd() * 0.01, ph = rnd() * 6;
+        for (let y = 0; y <= H; y += 8) { const xx = x0 + Math.sin(y * fr + ph) * amp; y ? x.lineTo(xx, y) : x.moveTo(xx, y); }
+        x.stroke();
+      }
+      x.fillStyle = "rgba(0,0,0,.22)"; x.fillRect(i * pw - 1, 0, 2, H);
+    }
+  } else if (type === "Lin") {
+    for (let y = 0; y < H; y += 3) { x.fillStyle = `rgba(0,0,0,${rnd() * 0.05})`; x.fillRect(0, y, W, 1); }
+    for (let xx = 0; xx < W; xx += 3) { x.fillStyle = `rgba(255,255,255,${rnd() * 0.06})`; x.fillRect(xx, 0, 1, H); }
+  }
+  const d = x.getImageData(0, 0, W, H), p = d.data, amp = type === "Ardoise" ? 14 : 9;
+  for (let i = 0; i < p.length; i += 4) { const v = (rnd() - 0.5) * amp; p[i] += v; p[i + 1] += v; p[i + 2] += v; }
+  x.putImageData(d, 0, 0);
+  const v = x.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.28)"); x.fillStyle = v; x.fillRect(0, 0, W, H);
+  return c;
+}
+
+outil({
+  id: "kitlogo", cat: "Pour les clients", nom: "Kit logo", icone: "KIT", couleur: "#2b2b2f",
+  desc: "Un logo → toutes les déclinaisons à livrer, en zip",
+  longue: "Déposez un logo (PNG transparent ou SVG de préférence). Vous obtenez les versions couleur, noire et blanche, les tailles web, un carré pour les réseaux, une photo de profil ronde et le favicon.",
+  accept: "image/*,.svg", choisir: "Choisir un logo (PNG, SVG…)", zip: "kit_logo",
+  options: [
+    { cle: "nom", libelle: "Nom du logo", type: "texte", defaut: "logo" },
+    { cle: "detourer", libelle: "Retirer le fond blanc", type: "bool", defaut: false, aide: "Pour un logo en JPEG sur fond blanc." },
+    { cle: "tolerance", libelle: "Tolérance du détourage", type: "plage", min: 4, max: 80, defaut: 24, si: ["detourer", "true"] },
+    { cle: "fond", libelle: "Fond du carré et du profil", type: "couleur", defaut: "#ffffff" },
+    { cle: "marge", libelle: "Marge autour du logo", type: "plage", min: 4, max: 35, defaut: 14, unite: " %" },
+  ],
+  async run([f], o) {
+    const src = await chargerImage(f, 2048);
+    let c = toile(src.width, src.height), x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(src, 0, 0);
+    let d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+    if (o.detourer) {
+      const t = o.tolerance;
+      for (let i = 0; i < p.length; i += 4) { const e = 255 * 3 - p[i] - p[i + 1] - p[i + 2]; if (e < t * 3) p[i + 3] = Math.round(p[i + 3] * Math.max(0, (e - t) / (t * 2))); }
+      x.putImageData(d, 0, 0);
+    }
+    let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+    for (let y = 0; y < c.height; y++) for (let xx = 0; xx < c.width; xx++) if (p[(y * c.width + xx) * 4 + 3] > 10) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) throw new Error("Le logo est entièrement transparent.");
+    const logo = toile(x1 - x0 + 1, y1 - y0 + 1); logo.getContext("2d").drawImage(c, -x0, -y0);
+    const teinte = rgb => { const t = toile(logo.width, logo.height), tx = t.getContext("2d"); tx.drawImage(logo, 0, 0); tx.globalCompositeOperation = "source-in"; tx.fillStyle = rgb; tx.fillRect(0, 0, t.width, t.height); return t; };
+    const carre = (taille, fond, rond) => {
+      const t = toile(taille, taille), tx = t.getContext("2d");
+      if (fond) { tx.fillStyle = fond; if (rond) { tx.beginPath(); tx.arc(taille / 2, taille / 2, taille / 2, 0, 7); tx.fill(); } else tx.fillRect(0, 0, taille, taille); }
+      const mg = taille * o.marge / 100 * (rond ? 1.6 : 1); contenir(tx, logo, mg, mg, taille - 2 * mg, taille - 2 * mg); return t;
+    };
+    const n = propre(o.nom), S_ = [];
+    const ajout = async (nom, cv, info) => S_.push({ nom, blob: await versBlob(cv), info });
+    await ajout(`${n}_couleur.png`, logo.width > 3000 ? reduire(logo, 3000, logo.height * 3000 / logo.width) : logo, `${logo.width} × ${logo.height}`);
+    await ajout(`${n}_noir.png`, teinte("#000"), "noir");
+    await ajout(`${n}_blanc.png`, teinte("#fff"), "blanc");
+    for (const t of [1024, 512, 256, 128, 64]) await ajout(`web/${n}_${t}.png`, carre(t, null), `${t} px`);
+    await ajout(`reseaux/${n}_carre_1080.png`, carre(1080, o.fond), "1080 carré");
+    await ajout(`reseaux/${n}_profil_rond_400.png`, carre(400, o.fond, true), "profil rond");
+    await ajout(`favicon/apple-touch-icon.png`, carre(180, o.fond), "180 px");
+    const ico = []; for (const t of [16, 32, 48]) ico.push({ taille: t, png: new Uint8Array(await (await versBlob(carre(t, null))).arrayBuffer()) });
+    S_.push({ nom: "favicon/favicon.ico", blob: creerIco(ico), info: "16, 32, 48 px" });
+    const ap = document.createElement("div"); ap.className = "kit";
+    [["#fff", 1], ["#1b1c20", 2], ["#ffffff", 0], [o.fond, 9]].forEach(([bg, i]) => {
+      const u = URL.createObjectURL(S_[i].blob); URLS.push(u);
+      const cell = document.createElement("div"); cell.style.background = i === 0 ? "#1b1c20" : bg; cell.innerHTML = `<img src="${u}" alt="">`; ap.append(cell);
+    });
+    ap.children[2].style.background = "#fff";
+    return { sorties: S_, apercu: ap, infos: [`<b>${S_.length}</b> fichiers`, `${logo.width} × ${logo.height} px`] };
+  }
+});
+
+outil({
+  id: "palette", cat: "Pour les clients", nom: "Extracteur de palette", icone: "PAL", couleur: "#c4568a",
+  desc: "Image → couleurs principales en fiche + nuancier",
+  longue: "Les couleurs principales de l'image, avec HEX, RVB et CMJN (approximatif). Touchez une couleur pour copier son code. Le zip contient aussi les nuanciers .ase (Adobe/VectorCraft) et .gpl (GIMP).",
+  zip: "palette",
+  options: [
+    { cle: "n", libelle: "Nombre de couleurs", type: "plage", min: 3, max: 10, defaut: 6 },
+    { cle: "ordre", libelle: "Ordre", type: "choix", valeurs: ["Par importance", "Du clair au foncé"], defaut: "Par importance" },
+    { cle: "nom", libelle: "Nom de la palette", type: "texte", defaut: "Palette" },
+  ],
+  async run([f], o) {
+    await polices();
+    const im = await chargerImage(f), k = Math.min(1, 220 / Math.max(im.width, im.height)), w = Math.max(1, Math.round(im.width * k)), h = Math.max(1, Math.round(im.height * k));
+    let cols = kmeans(pixels(im, w, h), w * h, o.n);
+    if (o.ordre !== "Par importance") cols.sort((a, b) => luminance(b.rgb) - luminance(a.rgb));
+    const cmjn = ([r, g, b]) => { const R = r / 255, G = g / 255, B = b / 255, K = 1 - Math.max(R, G, B); return K >= 1 ? [0, 0, 0, 100] : [(1 - R - K) / (1 - K), (1 - G - K) / (1 - K), (1 - B - K) / (1 - K), K].map(v => Math.round(v * 100)); };
+    cols = cols.map((c, i) => ({ ...c, hex: "#" + rgbVersHex(c.rgb), cmjn: cmjn(c.rgb), nom: `${o.nom} ${i + 1}` }));
+    // fiche
+    const W = 1600, H = 1000, c = toile(W, H), x = c.getContext("2d");
+    x.fillStyle = "#f6f4ef"; x.fillRect(0, 0, W, H);
+    contenir(x, im, 60, 120, 620, 820);
+    x.fillStyle = "#1d1d1f"; x.font = `52px ${DISPLAY}`; x.fillText(o.nom, 60, 88);
+    const sw = (H - 180) / cols.length;
+    cols.forEach((col, i) => {
+      const y = 120 + i * sw; x.fillStyle = col.hex; x.fillRect(740, y, 260, sw - 14);
+      x.fillStyle = "#1d1d1f"; x.font = `600 34px ${CORPS}`; x.fillText(col.hex, 1030, y + sw * 0.38);
+      x.fillStyle = "#6b6b70"; x.font = `400 24px ${CORPS}`;
+      x.fillText(`RVB ${col.rgb.join(", ")}`, 1030, y + sw * 0.38 + 34);
+      x.fillText(`CMJN ${col.cmjn.join(", ")}  ·  ${col.part < 0.01 ? "< 1" : Math.round(col.part * 100)} %`, 1030, y + sw * 0.38 + 64);
+    });
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cols.length * 120} 150" width="${cols.length * 120}" height="150"><title>${esc(o.nom)}</title>` +
+      cols.map((col, i) => `<g id="${col.hex.slice(1)}"><rect x="${i * 120 + 10}" y="10" width="100" height="100" rx="8" fill="${col.hex}"/><text x="${i * 120 + 60}" y="135" font-family="Arial" font-size="14" text-anchor="middle" fill="#222">${col.hex}</text></g>`).join("") + "</svg>";
+    const txt = `${o.nom}\n\n` + cols.map(c => `${c.hex}  RVB(${c.rgb.join(", ")})  CMJN(${c.cmjn.join(", ")})  ${Math.round(c.part * 100)} %`).join("\n") +
+      `\n\nCSS :\n:root {\n${cols.map((c, i) => `  --couleur-${i + 1}: ${c.hex};`).join("\n")}\n}\n`;
+    const gpl = `GIMP Palette\nName: ${o.nom}\nColumns: ${cols.length}\n#\n` + cols.map(c => `${c.rgb.map(v => String(v).padStart(3)).join(" ")}\t${c.hex}`).join("\n") + "\n";
+    const b = propre(o.nom);
+    const sorties = [
+      { nom: `${b}_fiche.png`, blob: await versBlob(c), info: "fiche client" },
+      { nom: `${b}.svg`, blob: new Blob([svg], { type: "image/svg+xml" }), info: "nuancier vectoriel" },
+      { nom: `${b}.txt`, blob: new Blob([txt], { type: "text/plain" }), info: "codes + CSS" },
+      { nom: `${b}.ase`, blob: creerAse(cols.map(c => ({ nom: c.hex, rgb: c.rgb }))), info: "nuancier Adobe" },
+      { nom: `${b}.gpl`, blob: new Blob([gpl], { type: "text/plain" }), info: "nuancier GIMP" },
+    ];
+    const ap = document.createElement("div"); ap.className = "swatchs";
+    cols.forEach(col => {
+      const bt = document.createElement("button"); bt.type = "button"; bt.className = "sw";
+      bt.innerHTML = `<span style="background:${col.hex}"></span><b>${col.hex}</b><small>${col.part < 0.01 ? "< 1" : Math.round(col.part * 100)} %</small>`;
+      bt.addEventListener("click", async () => { try { await navigator.clipboard.writeText(col.hex); toast(col.hex + " copié"); } catch (e) { toast("Copie impossible ici : " + col.hex); } });
+      ap.append(bt);
+    });
+    return { sorties, apercu: ap, infos: [`<b>${cols.length}</b> couleurs`] };
+  }
+});
+
+outil({
+  id: "impression", cat: "Pour les clients", nom: "Vérif impression", icone: "PRINT", couleur: "#4d6b8a",
+  desc: "Résolution suffisante ? + PDF avec fonds perdus et traits de coupe",
+  longue: "Indique si l'image est assez définie pour le format choisi (300 dpi idéal) et crée un PDF pour l'imprimeur, avec fonds perdus et traits de coupe.",
+  multiple: true, zip: "impression",
+  options: [
+    { cle: "format", libelle: "Format fini", type: "choix", valeurs: ["A6", "A5", "A4", "A3", "Carré 15 cm", "Personnalisé"], defaut: "A6" },
+    { cle: "l", libelle: "Largeur (cm)", type: "nombre", defaut: 10, min: 1, max: 200, si: ["format", "Personnalisé"] },
+    { cle: "h", libelle: "Hauteur (cm)", type: "nombre", defaut: 15, min: 1, max: 200, si: ["format", "Personnalisé"] },
+    { cle: "orientation", libelle: "Orientation", type: "choix", valeurs: ["Comme l'image", "Portrait", "Paysage"], defaut: "Comme l'image", si: ["format", "Personnalisé", true] },
+    { cle: "bleed", libelle: "Fonds perdus (mm)", type: "nombre", defaut: 3, min: 0, max: 10, aide: "3 mm est la norme chez la plupart des imprimeurs." },
+    { cle: "traits", libelle: "Traits de coupe", type: "bool", defaut: true },
+    { cle: "ajust", libelle: "Ajustement", type: "choix", valeurs: ["Remplir (recadre)", "Contenir (bandes blanches)"], defaut: "Remplir (recadre)" },
+  ],
+  async run(fichiers, o) {
+    const sorties = [], lignes = [];
+    for (const f of fichiers) {
+      const im = await chargerImage(f);
+      let [L, H] = o.format === "Personnalisé" ? [o.l * 10, o.h * 10] : FORMATS_PAGE[o.format];
+      if (o.format !== "Personnalisé") {
+        const paysage = o.orientation === "Paysage" || (o.orientation === "Comme l'image" && im.width > im.height);
+        if (paysage !== (L > H)) [L, H] = [H, L];
+      }
+      const b = Math.max(0, +o.bleed || 0), mk = o.traits ? 10 : 0, BL = L + 2 * b, BH = H + 2 * b;
+      const remplir = o.ajust.startsWith("Remplir"), k = remplir ? Math.max(BL / im.width, BH / im.height) : Math.min(L / im.width, H / im.height);
+      const dpi = 25.4 / k, verdict = dpi >= 300 ? ["Parfait", "ok"] : dpi >= 220 ? ["Correct", "ok"] : dpi >= 150 ? ["Limite", "warn"] : ["Trop faible", "bad"];
+      const maxCm = [im.width / 300 * 2.54, im.height / 300 * 2.54];
+      // rendu de la zone image (à la résolution native, plafonnée)
+      const zw = remplir ? BL : L, zh = remplir ? BH : H, pxmm = Math.min(1 / k, 600 / 25.4);
+      const cz = toile(zw * pxmm, zh * pxmm), zx = cz.getContext("2d"); zx.fillStyle = "#fff"; zx.fillRect(0, 0, cz.width, cz.height);
+      (remplir ? couvrir : contenir)(zx, im, 0, 0, cz.width, cz.height);
+      const PW = (BL + 2 * mk) * MM, PH = (BH + 2 * mk) * MM, ox = (mk + (remplir ? 0 : b)) * MM, oy = ox;
+      const traits = [];
+      if (o.traits) {
+        const t0 = mk * MM, g = (v) => v * MM, xs = [mk + b, mk + b + L], ys = [mk + b, mk + b + H];
+        for (const xv of xs) { traits.push([g(xv), 0, g(xv), t0 - 2 * MM + g(Math.max(0, 0))], [g(xv), PH - t0 + 2 * MM, g(xv), PH]); }
+        for (const yv of ys) { traits.push([0, g(yv), t0 - 2 * MM, g(yv)], [PW - t0 + 2 * MM, g(yv), PW, g(yv)]); }
+      }
+      const page = { w: PW, h: PH, images: [{ jpeg: await jpegDe(cz, 0.95), pw: cz.width, ph: cz.height, x: ox, y: oy, w: zw * MM, h: zh * MM }], traits, epaisseur: 0.25,
+        trim: [(mk + b) * MM, (mk + b) * MM, L * MM, H * MM], bleed: [mk * MM, mk * MM, BL * MM, BH * MM] };
+      sorties.push({ nom: `${propre(nomBase(f))}_impression_${o.format === "Personnalisé" ? "perso" : propre(o.format)}.pdf`, blob: creerPdf([page]), info: `${fmtNb(L / 10)} × ${fmtNb(H / 10)} cm · ${Math.round(dpi)} dpi` });
+      lignes.push(`<tr><td class="nm">${esc(f.name)}<br><span class="sz">${im.width} × ${im.height} px · 300 dpi jusqu'à ${fmtNb(maxCm[0])} × ${fmtNb(maxCm[1])} cm</span></td><td class="n">${Math.round(dpi)} dpi</td><td><span class="etat ${verdict[1]}">${verdict[0]}</span></td></tr>`);
+    }
+    const ap = `<div class="tablewrap"><table><thead><tr><th>Image</th><th class="n">Au format</th><th>Verdict</th></tr></thead><tbody>${lignes.join("")}</tbody></table></div>`;
+    return { sorties, apercu: ap, infos: [o.format, `fonds perdus ${fmtNb(o.bleed)} mm`] };
+  }
+});
+
+/* ================= INSTAGRAM & WEB ================= */
+outil({
+  id: "insta", cat: "Instagram & web", nom: "Formats Instagram", icone: "INSTA", couleur: "#c13584",
+  desc: "Une image → post carré, portrait 4:5 et story 9:16",
+  longue: "L'image entière est gardée, centrée sur un fond flou ou uni : rien n'est coupé.",
+  multiple: true, zip: "instagram",
+  options: [
+    { cle: "fond", libelle: "Fond", type: "choix", valeurs: ["Flou de l'image", "Couleur unie"], defaut: "Flou de l'image" },
+    { cle: "couleur", libelle: "Couleur", type: "couleur", defaut: "#ffffff", si: ["fond", "Couleur unie"] },
+    { cle: "marge", libelle: "Marge", type: "plage", min: 0, max: 20, defaut: 5, unite: " %" },
+    { cle: "carre", libelle: "Post carré 1080×1080", type: "bool", defaut: true },
+    { cle: "portrait", libelle: "Post portrait 1080×1350", type: "bool", defaut: true },
+    { cle: "story", libelle: "Story / Reel 1080×1920", type: "bool", defaut: true },
+  ],
+  async run(fichiers, o, ctx) {
+    const formats = [["carre", 1080, 1080], ["portrait", 1080, 1350], ["story", 1080, 1920]].filter(f => o[f[0]]);
+    if (!formats.length) throw new Error("Cochez au moins un format.");
+    const sorties = [];
+    for (const f of fichiers) {
+      const im = await chargerImage(f);
+      for (const [n, W, H] of formats) {
+        if (!ctx.actif()) return {};
+        const c = toile(W, H), x = c.getContext("2d");
+        if (o.fond.startsWith("Flou")) { x.filter = "blur(40px) brightness(.9)"; couvrir(x, im, -60, -60, W + 120, H + 120); x.filter = "none"; }
+        else { x.fillStyle = o.couleur; x.fillRect(0, 0, W, H); }
+        const m = W * o.marge / 100;
+        x.save(); x.shadowColor = "rgba(0,0,0,.25)"; x.shadowBlur = o.fond.startsWith("Flou") ? 30 : 0;
+        contenir(x, im, m, m, W - 2 * m, H - 2 * m); x.restore();
+        sorties.push({ nom: `${propre(nomBase(f))}_${n}.jpg`, blob: await versBlob(c, "image/jpeg", 0.92), info: `${W} × ${H}` });
+      }
+    }
+    return { sorties, apercu: aperçuImgs(sorties.slice(0, 6).map(s => s.blob), "rangee-ap"), infos: [`<b>${sorties.length}</b> visuels`] };
+  }
+});
+
+outil({
+  id: "filigrane", cat: "Instagram & web", nom: "Filigrane", icone: "©", couleur: "#5b5f6b",
+  desc: "Ajoute « © PhantStudio » ou ton logo, en lot",
+  multiple: true, zip: "filigrane",
+  options: [
+    { cle: "type", libelle: "Filigrane", type: "choix", valeurs: ["Texte", "Logo (image)"], defaut: "Texte" },
+    { cle: "texte", libelle: "Texte", type: "texte", defaut: "© PhantStudio", si: ["type", "Texte"] },
+    { cle: "logo", libelle: "Logo", type: "fichier", accept: "image/*", si: ["type", "Logo (image)"] },
+    { cle: "position", libelle: "Position", type: "choix", valeurs: ["Bas droite", "Bas gauche", "Haut droite", "Haut gauche", "Centre", "Mosaïque"], defaut: "Bas droite" },
+    { cle: "taille", libelle: "Taille", type: "plage", min: 5, max: 60, defaut: 18, unite: " %" },
+    { cle: "opacite", libelle: "Opacité", type: "plage", min: 10, max: 100, defaut: 60, unite: " %" },
+    { cle: "couleur", libelle: "Couleur", type: "choix", valeurs: ["Auto", "Blanc", "Noir"], defaut: "Auto", si: ["type", "Texte"] },
+  ],
+  async run(fichiers, o, ctx) {
+    await polices();
+    let logo = null;
+    if (o.type !== "Texte") { if (!o.logo) throw new Error("Choisissez un logo dans les réglages."); logo = await chargerImage(o.logo, 1200); }
+    const sorties = [];
+    for (const f of fichiers) {
+      if (!ctx.actif()) return {};
+      const im = await chargerImage(f), W = im.width, H = im.height, c = toile(W, H), x = c.getContext("2d");
+      x.drawImage(im, 0, 0);
+      // marque à poser
+      const mw = W * o.taille / 100;
+      let marque;
+      if (logo) { const mh = mw * logo.height / logo.width; marque = toile(mw, mh); contenir(marque.getContext("2d"), logo, 0, 0, mw, mh); }
+      else {
+        const t = toile(10, 10).getContext("2d"); t.font = `600 100px ${CORPS}`; const tw = t.measureText(o.texte).width || 1;
+        const fs = 100 * mw / tw; marque = toile(mw + fs * 0.4, fs * 1.4); const mx = marque.getContext("2d");
+        mx.font = `600 ${fs}px ${CORPS}`; mx.textBaseline = "middle"; mx.shadowColor = "rgba(0,0,0,.35)"; mx.shadowBlur = fs * 0.12;
+        let coul = o.couleur === "Noir" ? "#000" : "#fff";
+        if (o.couleur === "Auto") { const s = reduire(im, 32, 32).getContext("2d").getImageData(0, 0, 32, 32).data; let l = 0; for (let i = 0; i < s.length; i += 4) l += luminance([s[i], s[i + 1], s[i + 2]]); coul = l / 1024 > 0.62 ? "#000" : "#fff"; if (coul === "#000") mx.shadowColor = "rgba(255,255,255,.35)"; }
+        mx.fillStyle = coul; mx.fillText(o.texte, fs * 0.2, marque.height / 2);
+      }
+      x.globalAlpha = o.opacite / 100;
+      const m = Math.min(W, H) * 0.035, pw = marque.width, ph = marque.height;
+      const pos = { "Bas droite": [W - pw - m, H - ph - m], "Bas gauche": [m, H - ph - m], "Haut droite": [W - pw - m, m], "Haut gauche": [m, m], "Centre": [(W - pw) / 2, (H - ph) / 2] }[o.position];
+      if (pos) x.drawImage(marque, ...pos);
+      else { x.save(); x.translate(W / 2, H / 2); x.rotate(-Math.PI / 6); const sx = pw * 1.6, sy = ph * 3; const R = Math.hypot(W, H) / 2; for (let yy = -R; yy < R; yy += sy) for (let xx = -R + ((yy / sy) % 2 ? sx / 2 : 0); xx < R; xx += sx) x.drawImage(marque, xx, yy); x.restore(); }
+      x.globalAlpha = 1;
+      const png = /png$/i.test(f.type) || /\.png$/i.test(f.name), webp = /webp/.test(f.type);
+      const [type, ext] = png ? ["image/png", "png"] : webp ? ["image/webp", "webp"] : ["image/jpeg", "jpg"];
+      sorties.push({ nom: `${propre(nomBase(f))}_filigrane.${ext}`, blob: await versBlob(c, type, 0.92), info: `${W} × ${H}` });
+    }
+    return { sorties, apercu: aperçuImgs(sorties.slice(0, 4).map(s => s.blob)), infos: [`<b>${sorties.length}</b> image${sorties.length > 1 ? "s" : ""}`] };
+  }
+});
+
+outil({
+  id: "carrousel", cat: "Instagram & web", nom: "Carrousel", icone: "SWIPE", couleur: "#e1306c",
+  desc: "Une grande image découpée en cases qui se suivent",
+  longue: "Une illustration large est découpée en 2 à 10 visuels : en faisant défiler le post, l'image se reconstitue.",
+  zip: "carrousel",
+  options: [
+    { cle: "cases", libelle: "Nombre de cases", type: "int", defaut: 0, min: 0, max: 10, aide: "0 = automatique selon la largeur de l'image." },
+    { cle: "format", libelle: "Format des cases", type: "choix", valeurs: ["Portrait 4:5", "Carré 1:1"], defaut: "Portrait 4:5" },
+    { cle: "mode", libelle: "Ajustement", type: "choix", valeurs: ["Remplir (recadre)", "Contenir (bandes)"], defaut: "Remplir (recadre)" },
+    { cle: "couleur", libelle: "Couleur des bandes", type: "couleur", defaut: "#ffffff", si: ["mode", "Contenir (bandes)"] },
+  ],
+  async run([f], o) {
+    const im = await chargerImage(f), [cw, ch] = o.format === "Carré 1:1" ? [1080, 1080] : [1080, 1350];
+    const n = o.cases || Math.max(2, Math.min(10, Math.round((im.width / im.height) / (cw / ch))));
+    const pano = toile(cw * n, ch), x = pano.getContext("2d");
+    if (o.mode.startsWith("Remplir")) couvrir(x, im, 0, 0, pano.width, ch); else { x.fillStyle = o.couleur; x.fillRect(0, 0, pano.width, ch); contenir(x, im, 0, 0, pano.width, ch); }
+    const sorties = [];
+    for (let i = 0; i < n; i++) { const c = toile(cw, ch); c.getContext("2d").drawImage(pano, -i * cw, 0); sorties.push({ nom: `${propre(nomBase(f))}_carrousel_${String(i + 1).padStart(2, "0")}.jpg`, blob: await versBlob(c, "image/jpeg", 0.92), info: `${i + 1}/${n}` }); }
+    return { sorties, apercu: aperçuImgs(sorties.map(s => s.blob), "bande-ap"), infos: [`<b>${n}</b> cases`, `${cw} × ${ch}`] };
+  }
+});
+
+outil({
+  id: "avantapres", cat: "Instagram & web", nom: "Avant / après", icone: "A|B", couleur: "#d97a2b",
+  desc: "Croquis et rendu final côte à côte",
+  longue: "Choisissez 2 images : la première est « Avant », la seconde « Après » (flèche ↑ pour changer l'ordre).",
+  multiple: true, ajouter: true, ordre: true, min: 2, max: 2, choisir: "Ajouter les 2 images", vide: "Choisissez l'image « avant » puis l'image « après ».", zip: "avant_apres",
+  options: [
+    { cle: "dispo", libelle: "Disposition", type: "choix", valeurs: ["Côte à côte", "Haut / bas"], defaut: "Côte à côte" },
+    { cle: "format", libelle: "Format", type: "choix", valeurs: ["Portrait 1080×1350", "Carré 1080", "Paysage 1920×1080", "Story 1080×1920"], defaut: "Portrait 1080×1350" },
+    { cle: "libelles", libelle: "Libellés", type: "bool", defaut: true },
+    { cle: "t1", libelle: "Texte 1", type: "texte", defaut: "Avant", si: ["libelles", "true"] },
+    { cle: "t2", libelle: "Texte 2", type: "texte", defaut: "Après", si: ["libelles", "true"] },
+    { cle: "fond", libelle: "Fond", type: "couleur", defaut: "#ffffff" },
+    { cle: "espace", libelle: "Espace entre les images", type: "plage", min: 0, max: 60, defaut: 12, unite: " px" },
+  ],
+  async run(fichiers, o) {
+    await polices();
+    const [a, b] = [await chargerImage(fichiers[0]), await chargerImage(fichiers[1])];
+    const [W, H] = { "Portrait 1080×1350": [1080, 1350], "Carré 1080": [1080, 1080], "Paysage 1920×1080": [1920, 1080], "Story 1080×1920": [1080, 1920] }[o.format];
+    const c = toile(W, H), x = c.getContext("2d"); x.fillStyle = o.fond; x.fillRect(0, 0, W, H);
+    const g = o.espace, cote = o.dispo === "Côte à côte";
+    const zones = cote ? [[0, 0, (W - g) / 2, H], [(W + g) / 2, 0, (W - g) / 2, H]] : [[0, 0, W, (H - g) / 2], [0, (H + g) / 2, W, (H - g) / 2]];
+    [a, b].forEach((im, i) => couvrir(x, im, ...zones[i]));
+    if (o.libelles) {
+      const fs = Math.min(W, H) * 0.045; x.font = `${fs}px ${DISPLAY}`;
+      [o.t1, o.t2].forEach((t, i) => {
+        if (!t) return;
+        const [zx, zy] = zones[i], tw = x.measureText(t).width, px = fs * 0.6, bx = zx + fs * 0.7, by = zy + fs * 0.7;
+        x.fillStyle = "rgba(0,0,0,.55)"; x.beginPath(); x.roundRect(bx, by, tw + 2 * px, fs * 1.6, fs * 0.3); x.fill();
+        x.fillStyle = "#fff"; x.textBaseline = "middle"; x.fillText(t, bx + px, by + fs * 0.82);
+      });
+    }
+    return { sorties: [{ nom: `avant_apres_${propre(nomBase(fichiers[1]))}.jpg`, blob: await versBlob(c, "image/jpeg", 0.92), info: `${W} × ${H}` }], infos: [o.dispo, o.format] };
+  }
+});
+
+outil({
+  id: "web", cat: "Instagram & web", nom: "Optimiser pour le Web", icone: "WEB", couleur: AZUR,
+  desc: "Photos → fichiers légers WebP, JPEG ou PNG",
+  longue: "Redimensionne, remet à l'endroit et retire les infos cachées (appareil, position GPS…). Tout est traité sur le téléphone.",
+  multiple: true, zip: "images_web", choisir: "Choisir une ou plusieurs images",
+  options: [
+    { cle: "format", libelle: "Format", type: "choix", valeurs: ["WebP", "JPEG", "PNG"], defaut: "WebP" },
+    { cle: "qualite", libelle: "Qualité", type: "plage", min: 40, max: 100, defaut: 80, si: ["format", "PNG", true], aide: "75 à 85 est idéal pour des photos." },
+    { cle: "largeur", libelle: "Largeur max (px)", type: "int", defaut: 1920, min: 0, max: 10000, aide: "0 = taille d'origine. Jamais d'agrandissement." },
+    { cle: "responsive", libelle: "Variantes 480, 960, 1440 px", type: "bool", defaut: false },
+  ],
+  async run(fichiers, o, ctx) {
+    let type = { WebP: "image/webp", JPEG: "image/jpeg", PNG: "image/png" }[o.format];
+    const test = toile(2, 2).toDataURL(type); if (!test.startsWith("data:" + type)) type = "image/jpeg";
+    const ext = { "image/webp": ".webp", "image/jpeg": ".jpg", "image/png": ".png" }[type];
+    const sorties = []; let av = 0, ap = 0;
+    for (const f of fichiers) {
+      if (!ctx.actif()) return {};
+      const im = await chargerImage(f), cible = o.largeur && im.width > o.largeur ? o.largeur : im.width;
+      const ls = [cible]; if (o.responsive) [480, 960, 1440].forEach(l => l < cible && ls.push(l));
+      for (const l of ls) {
+        const h = Math.max(1, Math.round(im.height * l / im.width)), c = reduire(im, l, h);
+        if (type === "image/jpeg") { const t = toile(l, h), tx = t.getContext("2d"); tx.fillStyle = "#fff"; tx.fillRect(0, 0, l, h); tx.drawImage(c, 0, 0); c.getContext("2d").drawImage(t, 0, 0); }
+        const blob = await versBlob(c, type, o.qualite / 100);
+        if (l === cible) { av += f.size; ap += blob.size; }
+        const ecart = l === cible ? Math.round((blob.size / f.size - 1) * 100) : null;
+        sorties.push({ nom: propre(nomBase(f)) + (l === cible ? "" : `-${l}w`) + ext, blob, info: `${l} × ${h}` + (ecart !== null ? ` · <span class="gain${ecart > 0 ? " bad" : ""}">${ecart > 0 ? "+" : ""}${ecart} %</span> (avant ${octets(f.size)})` : "") });
+      }
+    }
+    return { sorties, infos: [`<b>${sorties.length}</b> fichier${sorties.length > 1 ? "s" : ""}`, `${octets(av)} → <b>${octets(ap)}</b>`, `−${av ? Math.round((1 - ap / av) * 100) : 0} %`] };
+  }
+});
+
+/* ================= CRÉATIF ================= */
+const HAMA = [["H01", "Blanc", "FFFFFF"], ["H02", "Crème", "F0E8B9"], ["H03", "Jaune", "F0B901"], ["H04", "Orange", "E64F27"], ["H05", "Rouge", "B63136"], ["H06", "Rose", "E1889F"], ["H07", "Violet", "694A82"], ["H08", "Bleu foncé", "2C4690"], ["H09", "Bleu", "305CB0"], ["H10", "Vert", "256D4F"], ["H11", "Vert clair", "49AE89"], ["H12", "Marron", "534137"], ["H17", "Gris", "838B8E"], ["H18", "Noir", "2E2F31"], ["H20", "Brun rouge", "7F332A"], ["H21", "Brun clair", "A5693F"], ["H22", "Bordeaux", "A52D36"], ["H26", "Chair", "DE9B90"], ["H27", "Beige", "DEB48B"], ["H28", "Vert foncé", "363F38"], ["H29", "Framboise", "B8395C"], ["H30", "Prune", "6E2E3C"], ["H31", "Turquoise", "6797AE"], ["H43", "Jaune pastel", "F0EA6F"], ["H44", "Corail pastel", "EE6972"], ["H45", "Lilas pastel", "886DB9"], ["H46", "Bleu pastel", "6F9AD3"], ["H47", "Vert pastel", "6FCB98"], ["H48", "Rose pastel", "D88BBF"], ["H49", "Azur", "4FA8C9"], ["H60", "Ocre", "C8901E"], ["H70", "Gris clair", "B9BDBF"], ["H71", "Gris foncé", "4B4F52"], ["H75", "Tan", "B48F6E"], ["H76", "Moka", "6E4B3A"], ["H77", "Glacé", "E6EEF2"], ["H79", "Abricot", "F2A35E"], ["H82", "Mûre", "4E2A52"], ["H83", "Pétrole", "23596B"], ["H84", "Kaki", "6C7B3E"]];
+const DMC = [["B5200", "Blanc neige", "FFFFFF"], ["Blanc", "Blanc", "FCFBF8"], ["Ecru", "Écru", "F0EADA"], ["310", "Noir", "000000"], ["3799", "Gris étain très foncé", "424242"], ["413", "Gris étain foncé", "565656"], ["414", "Gris acier foncé", "8C8C8C"], ["415", "Gris perle", "D3D3D6"], ["762", "Gris perle très clair", "ECECEC"], ["321", "Rouge", "C72B3B"], ["666", "Rouge vif", "E31D42"], ["304", "Rouge moyen", "B71F33"], ["815", "Grenat moyen", "87071F"], ["902", "Grenat très foncé", "822637"], ["3705", "Melon foncé", "FF7992"], ["3706", "Melon moyen", "FFADBC"], ["352", "Corail clair", "FD9C97"], ["3341", "Abricot", "FCAB98"], ["741", "Mandarine moyen", "FFA32B"], ["740", "Mandarine", "FF8B00"], ["946", "Orange brûlé moyen", "EB6307"], ["900", "Orange brûlé foncé", "D15807"], ["307", "Citron", "FDED54"], ["444", "Citron foncé", "FFD600"], ["743", "Jaune moyen", "FED376"], ["745", "Jaune pâle clair", "FFE9AD"], ["725", "Topaze", "FFC840"], ["783", "Topaze moyen", "CE9124"], ["434", "Brun clair", "985E33"], ["433", "Brun moyen", "7A451F"], ["801", "Café foncé", "653919"], ["898", "Café très foncé", "492A13"], ["3371", "Brun noir", "1E1108"], ["738", "Tan très clair", "ECCC9E"], ["437", "Tan clair", "E4BB8E"], ["945", "Fauve", "FBD5BB"], ["754", "Pêche clair", "F7CBBF"], ["699", "Vert", "056517"], ["702", "Vert tendre", "47A72F"], ["704", "Chartreuse vif", "9ECF34"], ["907", "Vert perroquet clair", "C7E666"], ["3347", "Vert jaune moyen", "71823C"], ["319", "Pistache très foncé", "205F2E"], ["367", "Pistache foncé", "617A52"], ["368", "Pistache clair", "A6C298"], ["943", "Aigue-marine moyen", "3D9384"], ["3812", "Vert d'eau très foncé", "2F8C84"], ["3846", "Turquoise vif clair", "06E3E6"], ["996", "Bleu électrique moyen", "30C2EC"], ["3843", "Bleu électrique", "14AAD0"], ["813", "Bleu clair", "A1C2D7"], ["799", "Bleu delft moyen", "748EB6"], ["798", "Bleu delft foncé", "466A8E"], ["820", "Bleu roi très foncé", "0E365C"], ["336", "Bleu marine", "253B73"], ["939", "Marine très foncé", "1B2853"], ["3753", "Bleu antique très clair", "DBE2E9"], ["333", "Bleu violet très foncé", "5C5478"], ["340", "Bleu violet moyen", "ADA7C7"], ["553", "Violet", "A3638B"], ["550", "Violet très foncé", "5C184E"], ["211", "Lavande clair", "E3CBE3"], ["3607", "Prune clair", "C54989"], ["718", "Prune", "9C2462"], ["3326", "Rose clair", "FBADB4"], ["818", "Rose bébé", "FFDFD9"], ["3687", "Mauve", "C96B70"]];
+
+function grillePerles(idx, w, h, pal, cell, dessin, legende, opts = {}) {
+  const marge = cell * 2, lw = Math.max(w * cell + marge * 2, 900), lignesLeg = Math.ceil(legende.length / 2);
+  const c = toile(lw, h * cell + marge * 2 + 40 + lignesLeg * 34 + 30), x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);
+  for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) dessin(x, marge + i * cell, marge + y * cell, cell, pal[idx[y * w + i]], idx[y * w + i]);
+  x.strokeStyle = "rgba(0,0,0,.18)"; x.lineWidth = 1;
+  for (let i = 0; i <= w; i++) { x.beginPath(); x.moveTo(marge + i * cell, marge); x.lineTo(marge + i * cell, marge + h * cell); x.lineWidth = i % (opts.gros || 10) === 0 ? 2.4 : 1; x.strokeStyle = i % (opts.gros || 10) === 0 ? "rgba(0,0,0,.6)" : "rgba(0,0,0,.18)"; x.stroke(); }
+  for (let j = 0; j <= h; j++) { x.beginPath(); x.moveTo(marge, marge + j * cell); x.lineTo(marge + w * cell, marge + j * cell); x.lineWidth = j % (opts.gros || 10) === 0 ? 2.4 : 1; x.strokeStyle = j % (opts.gros || 10) === 0 ? "rgba(0,0,0,.6)" : "rgba(0,0,0,.18)"; x.stroke(); }
+  x.fillStyle = "#555"; x.font = `500 ${Math.max(10, cell * 0.55)}px ${CORPS}`; x.textAlign = "center"; x.textBaseline = "middle";
+  const pas = opts.gros || 10;
+  for (let i = pas; i <= w; i += pas) x.fillText(i, marge + i * cell, marge / 2);
+  for (let j = pas; j <= h; j += pas) x.fillText(j, marge / 2, marge + j * cell);
+  x.textAlign = "left";
+  let y0 = marge * 2 + h * cell + 10;
+  legende.forEach((l, i) => {
+    const col = i % 2, row = Math.floor(i / 2), lx = marge + col * (lw - 2 * marge) / 2, ly = y0 + row * 34;
+    x.fillStyle = "#" + l.hex; x.fillRect(lx, ly, 26, 26); x.strokeStyle = "rgba(0,0,0,.3)"; x.strokeRect(lx, ly, 26, 26);
+    if (l.sym) { x.fillStyle = luminance(hexVersRgb(l.hex)) > 0.55 ? "#000" : "#fff"; x.font = `700 16px ${CORPS}`; x.textAlign = "center"; x.fillText(l.sym, lx + 13, ly + 14); x.textAlign = "left"; }
+    x.fillStyle = "#222"; x.font = `500 17px ${CORPS}`; x.fillText(l.texte, lx + 36, ly + 14);
+  });
+  return c;
+}
+function preparerGrille(im, w, palette, nmax, tramage) {
+  const h = Math.max(1, Math.round(im.height * w / im.width)), px = pixels(im, w, h);
+  let pal = palette.map(p => [p[1], p[0], p[2]]); // [nom, code, hex] pour quantifier()
+  if (nmax > 0 && nmax < pal.length) {
+    const brut = quantifier(px, w, h, pal, false), cpt = new Array(pal.length).fill(0); brut.forEach(k => cpt[k]++);
+    pal = cpt.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).slice(0, nmax).filter(v => v[0]).map(v => pal[v[1]]);
+  }
+  const idx = quantifier(px, w, h, pal, tramage), cpt = new Array(pal.length).fill(0); idx.forEach(k => cpt[k]++);
+  return { idx, w, h, pal, cpt };
+}
+
+outil({
+  id: "hama", cat: "Créatif", nom: "Perles à repasser", icone: "HAMA", couleur: "#e2a400",
+  desc: "Image → modèle Hama à imprimer + liste des perles",
+  longue: "Modèle pour perles Hama Midi : une plaque carrée fait 29 × 29 perles (traits épais). Couleurs Hama approximatives.",
+  zip: "hama",
+  options: [
+    { cle: "largeur", libelle: "Largeur (perles)", type: "int", defaut: 29, min: 8, max: 150, aide: "29 = une plaque carrée Hama Midi." },
+    { cle: "nmax", libelle: "Nombre max de couleurs", type: "int", defaut: 12, min: 0, max: 40, aide: "0 = toutes." },
+    { cle: "tramage", libelle: "Tramage", type: "bool", defaut: false },
+  ],
+  async run([f], o) {
+    await polices();
+    const im = await chargerImage(f), g = preparerGrille(im, o.largeur, HAMA.map(([c, n, h]) => [n, c, h]), o.nmax, o.tramage);
+    const leg = g.pal.map((p, i) => ({ hex: p[2], texte: `${p[1]} ${p[0]} — ${g.cpt[i]} perles` })).filter((_, i) => g.cpt[i]);
+    const cell = Math.max(14, Math.min(30, Math.floor(1800 / g.w)));
+    const c = grillePerles(g.idx, g.w, g.h, g.pal, cell, (x, px, py, s, p) => {
+      x.fillStyle = "#" + p[2]; x.beginPath(); x.arc(px + s / 2, py + s / 2, s * 0.46, 0, 7); x.fill();
+      x.fillStyle = "#fff"; x.globalAlpha = 0.85; x.beginPath(); x.arc(px + s / 2, py + s / 2, s * 0.15, 0, 7); x.fill(); x.globalAlpha = 1;
+    }, leg, { gros: 29 });
+    const csv = "﻿Code;Couleur;Hex;Perles\r\n" + g.pal.map((p, i) => [p[1], p[0], "#" + p[2], g.cpt[i]]).filter(r => r[3]).sort((a, b) => b[3] - a[3]).map(r => r.join(";")).join("\r\n") + `\r\n\r\nTOTAL;;;${g.w * g.h}\r\n`;
+    const plaques = Math.ceil(g.w / 29) * Math.ceil(g.h / 29), b = propre(nomBase(f));
+    return { sorties: [{ nom: `${b}_hama.png`, blob: await versBlob(c), info: "modèle" }, { nom: `${b}_hama_perles.csv`, blob: new Blob([csv], { type: "text/csv" }), info: "liste" }],
+      infos: [`<b>${g.w} × ${g.h}</b> perles`, `${(g.w * g.h).toLocaleString("fr-FR")} perles`, `${leg.length} couleurs`, `${plaques} plaque${plaques > 1 ? "s" : ""}`] };
+  }
+});
+
+const SYMBOLES = "ABCDEFGHJKLMNPRSTUVWXYZ2345789+=#%&@?$".split("");
+outil({
+  id: "croix", cat: "Créatif", nom: "Point de croix", icone: "✚", couleur: "#a2475e",
+  desc: "Image → grille avec symboles + fils DMC",
+  longue: "Grille de broderie avec symboles, repères tous les 10 points et liste des fils DMC (correspondance approximative). Une idée de cadeau personnalisé à proposer.",
+  zip: "point_de_croix",
+  options: [
+    { cle: "largeur", libelle: "Largeur (points)", type: "int", defaut: 70, min: 10, max: 250 },
+    { cle: "nmax", libelle: "Nombre max de couleurs", type: "int", defaut: 12, min: 2, max: 38 },
+    { cle: "toile", libelle: "Toile", type: "choix", valeurs: ["Aida 11", "Aida 14", "Aida 16", "Aida 18"], defaut: "Aida 14" },
+    { cle: "couleurs", libelle: "Cases en couleur", type: "bool", defaut: true, aide: "Décochez pour une grille noir et blanc, plus économe à imprimer." },
+    { cle: "tramage", libelle: "Tramage", type: "bool", defaut: false },
+  ],
+  async run([f], o) {
+    await polices();
+    const im = await chargerImage(f), g = preparerGrille(im, o.largeur, DMC.map(([c, n, h]) => [n, c, h]), o.nmax, o.tramage);
+    const ordre = g.cpt.map((c, i) => [c, i]).filter(v => v[0]).sort((a, b) => b[0] - a[0]).map(v => v[1]);
+    const sym = {}; ordre.forEach((i, k) => sym[i] = SYMBOLES[k % SYMBOLES.length]);
+    const count = +o.toile.split(" ")[1], parEch = 1800 * (14 / count);
+    const leg = ordre.map(i => ({ hex: g.pal[i][2], sym: sym[i], texte: `DMC ${g.pal[i][1]} ${g.pal[i][0]} — ${g.cpt[i]} pts · ${Math.max(1, Math.ceil(g.cpt[i] / parEch))} éch.` }));
+    const cell = Math.max(16, Math.min(28, Math.floor(2000 / g.w)));
+    const c = grillePerles(g.idx, g.w, g.h, g.pal, cell, (x, px, py, s, p, i) => {
+      x.fillStyle = o.couleurs ? "#" + p[2] : "#fff"; x.fillRect(px, py, s, s);
+      x.fillStyle = o.couleurs && luminance(hexVersRgb(p[2])) < 0.55 ? "#fff" : "#000";
+      x.font = `700 ${s * 0.62}px ${CORPS}`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(sym[i], px + s / 2, py + s / 2 + 1); x.textAlign = "left";
+    }, leg, { gros: 10 });
+    const cm = v => fmtNb(v / count * 2.54);
+    const csv = "﻿Symbole;DMC;Couleur;Hex;Points;Échevettes (estim.)\r\n" + ordre.map(i => [sym[i], g.pal[i][1], g.pal[i][0], "#" + g.pal[i][2], g.cpt[i], Math.max(1, Math.ceil(g.cpt[i] / parEch))].join(";")).join("\r\n") + `\r\n\r\nTaille brodée;${cm(g.w)} × ${cm(g.h)} cm sur ${o.toile}\r\n`;
+    const b = propre(nomBase(f));
+    return { sorties: [{ nom: `${b}_point_de_croix.png`, blob: await versBlob(c), info: "grille" }, { nom: `${b}_fils_dmc.csv`, blob: new Blob([csv], { type: "text/csv" }), info: "fils" }],
+      infos: [`<b>${g.w} × ${g.h}</b> points`, `${cm(g.w)} × ${cm(g.h)} cm sur ${o.toile}`, `${ordre.length} fils`] };
+  }
+});
+
+outil({
+  id: "pixel", cat: "Créatif", nom: "Pixel art", icone: "PIX", couleur: "#5a8f3c",
+  desc: "Image → pixel art propre en PNG et SVG vectoriel",
+  zip: "pixel_art",
+  options: [
+    { cle: "largeur", libelle: "Largeur (pixels)", type: "int", defaut: 48, min: 8, max: 256 },
+    { cle: "n", libelle: "Nombre de couleurs", type: "plage", min: 2, max: 32, defaut: 12 },
+    { cle: "tramage", libelle: "Tramage", type: "bool", defaut: false },
+  ],
+  async run([f], o) {
+    const im = await chargerImage(f), w = o.largeur, h = Math.max(1, Math.round(im.height * w / im.width)), px = pixels(im, w, h);
+    const pal = kmeans(px, w * h, o.n).map((c, i) => [`c${i}`, i, rgbVersHex(c.rgb)]), idx = quantifier(px, w, h, pal, o.tramage);
+    const reel = toile(w, h), rx = reel.getContext("2d"), d = rx.createImageData(w, h);
+    idx.forEach((k, i) => { const c = hexVersRgb(pal[k][2]); d.data.set([...c, 255], i * 4); }); rx.putImageData(d, 0, 0);
+    const z = Math.max(1, Math.floor(1600 / Math.max(w, h))), gros = toile(w * z, h * z), gx = gros.getContext("2d"); gx.imageSmoothingEnabled = false; gx.drawImage(reel, 0, 0, w * z, h * z);
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * 10}" height="${h * 10}" shape-rendering="crispEdges">`;
+    pal.forEach((p, k) => {
+      let r = "";
+      for (let y = 0; y < h; y++) { let x0 = -1; for (let x = 0; x <= w; x++) { const on = x < w && idx[y * w + x] === k; if (on && x0 < 0) x0 = x; if (!on && x0 >= 0) { r += `M${x0} ${y}h${x - x0}v1h${x0 - x}z`; x0 = -1; } } }
+      if (r) svg += `<path id="couleur-${p[2]}" fill="#${p[2]}" d="${r}"/>`;
+    });
+    svg += "</svg>";
+    const b = propre(nomBase(f));
+    return { sorties: [{ nom: `${b}_pixel_x${z}.png`, blob: await versBlob(gros), info: `agrandi ×${z}` }, { nom: `${b}_pixel_reel.png`, blob: await versBlob(reel), info: `${w} × ${h}` }, { nom: `${b}_pixel.svg`, blob: new Blob([svg], { type: "image/svg+xml" }), info: "vectoriel" }],
+      infos: [`<b>${w} × ${h}</b> px`, `${pal.length} couleurs`] };
+  }
+});
+
+outil({
+  id: "croquis", cat: "Créatif", nom: "Croquis net", icone: "INK", couleur: "#3a3d45",
+  desc: "Photo de croquis → traits noirs nets sur fond transparent",
+  longue: "Nettoie un croquis photographié ou scanné : fond supprimé, ombres de la photo atténuées, petites taches retirées. Idéal avant vectorisation dans VectorCraft.",
+  multiple: true, zip: "croquis",
+  options: [
+    { cle: "sens", libelle: "Sensibilité", type: "plage", min: 1, max: 40, defaut: 12, aide: "Plus haut = seuls les traits foncés restent." },
+    { cle: "zone", libelle: "Taille de zone", type: "plage", min: 5, max: 80, defaut: 25, aide: "Compense les ombres et l'éclairage inégal." },
+    { cle: "nettoyage", libelle: "Taches à retirer (px)", type: "int", defaut: 30, min: 0, max: 2000 },
+    { cle: "trait", libelle: "Couleur du trait", type: "couleur", defaut: "#000000" },
+    { cle: "fond", libelle: "Fond", type: "choix", valeurs: ["Transparent", "Blanc"], defaut: "Transparent" },
+    { cle: "max", libelle: "Largeur max (px)", type: "int", defaut: 3000, min: 500, max: 6000 },
+  ],
+  async run(fichiers, o, ctx) {
+    const sorties = [], [tr, tg, tb] = hexVersRgb(o.trait);
+    for (const f of fichiers) {
+      if (!ctx.actif()) return {};
+      const im = await chargerImage(f), k = Math.min(1, o.max / im.width), W = Math.round(im.width * k), H = Math.round(im.height * k);
+      const c = reduire(im, W, H), x = c.getContext("2d", { willReadFrequently: true }), d = x.getImageData(0, 0, W, H), p = d.data;
+      const gr = new Float32Array(W * H); for (let i = 0; i < W * H; i++) gr[i] = 0.299 * p[i * 4] + 0.587 * p[i * 4 + 1] + 0.114 * p[i * 4 + 2];
+      const I = new Float64Array((W + 1) * (H + 1));
+      for (let y = 0; y < H; y++) { let s = 0; for (let xx = 0; xx < W; xx++) { s += gr[y * W + xx]; I[(y + 1) * (W + 1) + xx + 1] = I[y * (W + 1) + xx + 1] + s; } }
+      const r = Math.max(2, Math.round(Math.max(W, H) * o.zone / 1000)), seuil = 1 - o.sens / 100;
+      const enc = new Uint8Array(W * H);
+      for (let y = 0; y < H; y++) for (let xx = 0; xx < W; xx++) {
+        const x0 = Math.max(0, xx - r), x1 = Math.min(W, xx + r + 1), y0 = Math.max(0, y - r), y1 = Math.min(H, y + r + 1);
+        const moy = (I[y1 * (W + 1) + x1] - I[y0 * (W + 1) + x1] - I[y1 * (W + 1) + x0] + I[y0 * (W + 1) + x0]) / ((x1 - x0) * (y1 - y0));
+        enc[y * W + xx] = gr[y * W + xx] < moy * seuil ? 1 : 0;
+      }
+      if (o.nettoyage > 0) { // retire les petites taches
+        const vu = new Uint8Array(W * H), pile = new Int32Array(W * H), comp = new Int32Array(W * H);
+        for (let i = 0; i < W * H; i++) if (enc[i] && !vu[i]) {
+          let n = 0, sp = 0; pile[sp++] = i; vu[i] = 1;
+          while (sp) { const j = pile[--sp]; comp[n++] = j; const jx = j % W; for (const v of [j - 1, j + 1, j - W, j + W]) { if (v < 0 || v >= W * H || (v === j - 1 && jx === 0) || (v === j + 1 && jx === W - 1)) continue; if (enc[v] && !vu[v]) { vu[v] = 1; pile[sp++] = v; } } }
+          if (n < o.nettoyage) for (let q = 0; q < n; q++) enc[comp[q]] = 0;
+        }
+      }
+      const blanc = o.fond === "Blanc";
+      for (let i = 0; i < W * H; i++) {
+        if (enc[i]) { p[i * 4] = tr; p[i * 4 + 1] = tg; p[i * 4 + 2] = tb; p[i * 4 + 3] = 255; }
+        else if (blanc) { p[i * 4] = p[i * 4 + 1] = p[i * 4 + 2] = 255; p[i * 4 + 3] = 255; } else p[i * 4 + 3] = 0;
+      }
+      x.putImageData(d, 0, 0);
+      sorties.push({ nom: `${propre(nomBase(f))}_croquis.png`, blob: await versBlob(c), info: `${W} × ${H}` });
+    }
+    const ap = aperçuImgs(sorties.slice(0, 4).map(s => s.blob)); ap.classList.add("damier");
+    return { sorties, apercu: ap, infos: [`<b>${sorties.length}</b> croquis`] };
+  }
+});
+
+/* ================= UTILITAIRES ================= */
+outil({
+  id: "renommer", cat: "Utilitaires", nom: "Renommage en lot", icone: "ABC", couleur: GRIS,
+  desc: "Ex. 2026-11_ClientDupont_01.jpg, selon ton modèle",
+  longue: "Crée des copies renommées, rangées dans un zip. Balises : {date} {client} {n} {nom} (nom d'origine).",
+  accept: "*/*", multiple: true, ajouter: true, ordre: true, choisir: "Choisir des fichiers", vide: "Choisissez les fichiers à renommer.", zip: "renommes",
+  options: [
+    { cle: "modele", libelle: "Modèle", type: "texte", defaut: "{date}_{client}_{n}" },
+    { cle: "client", libelle: "Client", type: "texte", defaut: "Client" },
+    { cle: "fdate", libelle: "Format de date", type: "choix", valeurs: ["AAAA-MM-JJ", "AAAA-MM", "JJ-MM-AAAA", "AAAAMMJJ"], defaut: "AAAA-MM" },
+    { cle: "debut", libelle: "Numéro de départ", type: "int", defaut: 1, min: 0, max: 99999 },
+    { cle: "chiffres", libelle: "Chiffres du numéro", type: "int", defaut: 2, min: 1, max: 6 },
+    { cle: "ordre", libelle: "Ordre", type: "choix", valeurs: ["Sélection", "Nom", "Date du fichier"], defaut: "Sélection" },
+  ],
+  async run(fichiers, o) {
+    const [Y, M, D] = AUJ.split("-"), date = { "AAAA-MM-JJ": `${Y}-${M}-${D}`, "AAAA-MM": `${Y}-${M}`, "JJ-MM-AAAA": `${D}-${M}-${Y}`, "AAAAMMJJ": Y + M + D }[o.fdate];
+    let l = [...fichiers];
+    if (o.ordre === "Nom") l.sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
+    if (o.ordre === "Date du fichier") l.sort((a, b) => a.lastModified - b.lastModified);
+    const vus = new Set(), sorties = [], lignes = [];
+    l.forEach((f, i) => {
+      const ext = (f.name.match(/\.[^.]+$/) || [""])[0].toLowerCase();
+      let n = o.modele.replace(/\{date\}/g, date).replace(/\{client\}/g, o.client).replace(/\{n\}/g, String(o.debut + i).padStart(o.chiffres, "0")).replace(/\{nom\}/g, nomBase(f));
+      n = n.replace(/[\\/:*?"<>|]+/g, "-").trim() || "fichier"; let fin = n + ext, k = 2; while (vus.has(fin)) fin = `${n}_${k++}${ext}`; vus.add(fin);
+      sorties.push({ nom: fin, blob: f }); lignes.push(`<tr><td class="sz">${esc(f.name)}</td><td>→</td><td class="nm">${esc(fin)}</td></tr>`);
+    });
+    return { sorties, apercu: `<div class="tablewrap"><table><tbody>${lignes.join("")}</tbody></table></div>`, infos: [`<b>${sorties.length}</b> fichiers`] };
+  }
+});
+
+outil({
+  id: "pdf", cat: "Utilitaires", nom: "Images → PDF", icone: "PDF", couleur: "#b8402f",
+  desc: "Plusieurs images réunies en un seul PDF",
+  longue: "Pratique pour un devis photographié, un book ou un dossier client. Une image par page.",
+  multiple: true, ajouter: true, ordre: true, choisir: "Ajouter des images", zip: "pdf",
+  options: [
+    { cle: "nom", libelle: "Nom du PDF", type: "texte", defaut: "document" },
+    { cle: "format", libelle: "Format de page", type: "choix", valeurs: ["A4", "A5", "A6", "Taille de l'image"], defaut: "A4" },
+    { cle: "orientation", libelle: "Orientation", type: "choix", valeurs: ["Auto", "Portrait", "Paysage"], defaut: "Auto", si: ["format", "Taille de l'image", true] },
+    { cle: "marge", libelle: "Marge (mm)", type: "nombre", defaut: 10, min: 0, max: 50, si: ["format", "Taille de l'image", true] },
+    { cle: "ajust", libelle: "Ajustement", type: "choix", valeurs: ["Contenir", "Remplir la page"], defaut: "Contenir", si: ["format", "Taille de l'image", true] },
+    { cle: "qualite", libelle: "Qualité", type: "plage", min: 50, max: 100, defaut: 85 },
+  ],
+  async run(fichiers, o, ctx) {
+    const pages = [], vign = [];
+    for (const f of fichiers) {
+      if (!ctx.actif()) return {};
+      const im = await chargerImage(f);
+      let pw, ph, zone;
+      if (o.format === "Taille de l'image") { pw = im.width / 150 * 25.4; ph = im.height / 150 * 25.4; zone = [0, 0, pw, ph]; }
+      else {
+        [pw, ph] = FORMATS_PAGE[o.format];
+        const pay = o.orientation === "Paysage" || (o.orientation === "Auto" && im.width > im.height); if (pay) [pw, ph] = [ph, pw];
+        const m = o.ajust === "Contenir" ? o.marge : 0; zone = [m, m, pw - 2 * m, ph - 2 * m];
+      }
+      const remplir = o.ajust === "Remplir la page" && o.format !== "Taille de l'image";
+      const k = remplir ? Math.max(zone[2] / im.width, zone[3] / im.height) : Math.min(zone[2] / im.width, zone[3] / im.height);
+      const dw = im.width * k, dh = im.height * k, dx = zone[0] + (zone[2] - dw) / 2, dy = zone[1] + (zone[3] - dh) / 2;
+      const pxmm = Math.min(im.width / dw, 300 / 25.4), cz = toile(Math.min(dw, pw) * pxmm, Math.min(dh, ph) * pxmm), zx = cz.getContext("2d");
+      zx.fillStyle = "#fff"; zx.fillRect(0, 0, cz.width, cz.height);
+      if (remplir) couvrir(zx, im, 0, 0, cz.width, cz.height); else zx.drawImage(reduire(im, cz.width, cz.height), 0, 0);
+      const ix = remplir ? 0 : dx, iy = remplir ? 0 : dy, iw = remplir ? pw : dw, ih = remplir ? ph : dh;
+      pages.push({ w: pw * MM, h: ph * MM, images: [{ jpeg: await jpegDe(cz, o.qualite / 100), pw: cz.width, ph: cz.height, x: ix * MM, y: iy * MM, w: iw * MM, h: ih * MM }] });
+      if (vign.length < 12) vign.push(await versBlob(reduire(cz, 160, 160 * cz.height / cz.width), "image/jpeg", 0.8));
+    }
+    const pdf = creerPdf(pages);
+    return { sorties: [{ nom: propre(o.nom) + ".pdf", blob: pdf, info: `${pages.length} page${pages.length > 1 ? "s" : ""}` }], apercu: aperçuImgs(vign, "pages-ap"), infos: [`<b>${pages.length}</b> pages`, o.format] };
+  }
+});
+
+outil({
+  id: "archive", cat: "Utilitaires", nom: "Archiver un projet", icone: "ZIP", couleur: "#7b6a58",
+  desc: "Fichiers d'un projet → un zip daté, avec sommaire",
+  longue: "Réunit tous les fichiers d'un projet client dans un zip nommé avec la date, avec un fichier « contenu.txt » qui liste ce qu'il contient.",
+  accept: "*/*", multiple: true, ajouter: true, choisir: "Ajouter des fichiers", vide: "Choisissez les fichiers du projet.",
+  options: [
+    { cle: "projet", libelle: "Nom du projet / client", type: "texte", defaut: "Projet" },
+    { cle: "date", libelle: "Date au début du nom", type: "bool", defaut: true },
+    { cle: "note", libelle: "Note (optionnelle)", type: "texte", defaut: "" },
+  ],
+  async run(fichiers, o) {
+    const nom = (o.date ? AUJ + "_" : "") + propre(o.projet), total = fichiers.reduce((s, f) => s + f.size, 0);
+    const vus = new Set(), items = fichiers.map(f => { let n = f.name, k = 2; while (vus.has(n)) n = f.name.replace(/(\.[^.]+)?$/, `_${k++}$1`); vus.add(n); return { name: n, data: f }; });
+    const txt = `${o.projet}\nArchivé le ${new Date().toLocaleString("fr-FR")}\n${o.note ? "Note : " + o.note + "\n" : ""}\n${items.length} fichiers, ${octets(total)}\n\n` + items.map((it, i) => `${String(i + 1).padStart(3)}. ${it.name}  (${octets(it.data.size)})`).join("\n") + "\n";
+    const z = await zip([{ name: "contenu.txt", data: txt }, ...items]);
+    return { sorties: [{ nom: nom + ".zip", blob: z, info: `${items.length} fichiers` }], apercu: `<pre class="liste">${esc(txt)}</pre>`, infos: [`<b>${items.length}</b> fichiers`, octets(total)] };
+  }
+});
+
+
+/* ---------------- Navigation (#accueil, #lego, #planche…) ---------------- */
+let vueActive = "accueil";
+function montrer(id) {
+  const def = OUTILS.find(d => d.id === id);
+  vueActive = def ? (def.vue === "lego" ? "lego" : "outil") : "accueil";
+  if (vueActive === "outil" && !ouvrirOutil(id)) vueActive = "accueil";
+  document.documentElement.style.setProperty("--accent", def ? def.couleur : "#d6281a");
+  $("#v-accueil").hidden = vueActive !== "accueil"; $("#v-lego").hidden = vueActive !== "lego"; $("#v-outil").hidden = vueActive !== "outil";
+  $("#bar-lego").hidden = vueActive !== "lego"; $("#bar-outil").hidden = vueActive !== "outil";
+  document.querySelector(".bar").hidden = vueActive === "accueil";
+  $("#retour").hidden = vueActive === "accueil";
+  $("#h-sous").textContent = def ? def.nom : "version téléphone";
+  if (vueActive === "lego" && !RES) afficherLego();
+  window.scrollTo(0, 0);
+}
+$("#retour").addEventListener("click", () => { location.hash = "accueil"; });
+window.addEventListener("hashchange", () => montrer(location.hash.slice(1)));
+
+construireAccueil();
+majVisibilite(); resumePage();
+montrer(location.hash.slice(1));
+majBoutons();
+
+</script>
+</body>
+</html>

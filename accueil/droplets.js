@@ -81,7 +81,7 @@
 
   /* ---------- Interface ---------- */
   function majOnglets() {
-    document.querySelectorAll(".droplet-onglet").forEach(b => b.setAttribute("aria-selected", String(b.dataset.d === O.mode)));
+    document.querySelectorAll(".droplet-onglet[data-d]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.d === O.mode)));
     $("#opt-web").hidden = O.mode !== "web";
     $("#opt-lego").hidden = O.mode !== "lego";
     $("#opt-facade").hidden = O.mode !== "facade";
@@ -93,7 +93,7 @@
     $("#d-qualite").disabled = O.format === "image/png";
   }
 
-  document.querySelectorAll(".droplet-onglet").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".droplet-onglet[data-d]").forEach(b => b.addEventListener("click", () => {
     O.mode = b.dataset.d; memoriser(); majOnglets();
   }));
   const lier = (sel, cle, conv = v => v) => {
