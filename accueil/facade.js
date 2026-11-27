@@ -1,15 +1,14 @@
 /* ==========================================================
    Droplet 3 : Découpe de façade
    Photo d'un bâtiment → planche « référence + découpe + légende ».
-   1. La photo (réduite) part à l'analyse, qui renvoie une description chiffrée (JSON).
-      Sans clé, on part d'un modèle à remplir soi-même.
+   1. L'analyse se fait dans une conversation à part : on copie le prompt, on y joint la photo,
+      puis on recolle ici la description chiffrée (JSON) renvoyée. Rien n'est envoyé d'ici.
    2. Le dessin (1080 × 1350) et la planche (2310 × 2360) sont faits ici, sur l'appareil.
    3. Contrôles automatiques + cases à cocher avant validation.
    ========================================================== */
 "use strict";
 (() => {
-  const CLE_API = "phant_cle_anthropic"; // hors du préfixe des sauvegardes : la clé ne part jamais dans un export
-  const MODELE = "claude-haiku-5-5"; // le moins coûteux qui lit les images (0,10 $ / 0,50 $ par million de jetons)
+  const LIEN_ANALYSE = "https://claude.ai/new";
 
   /* Code couleur : une même forme garde toujours la même couleur */
   const C = {
@@ -51,46 +50,13 @@ Règles :
 7. Fenêtres allumées : 30 à 50 % du total, en damier, jamais deux sur la même ligne ni la même colonne, positions [colonne, niveau].
 8. "supprime" : ce qu'on retire (usure, graffitis, câbles, tirants, affichettes, perspective…). On garde ce qui fait l'identité.
 9. Simplifie vers la symétrie (porte : "centre", "gauche" ou "droite") ; chaque écart volontaire avec la photo va dans "ecarts".
-Réponds uniquement par un objet JSON, sans texte autour, exactement de cette forme (exemple pour une épicerie en briques) :
+Joint : la photo du bâtiment. Réponds uniquement par un objet JSON, sans texte autour, exactement de cette forme (exemple pour une épicerie en briques) :
 ${JSON.stringify(MODELE_JSON)}`;
 
-  /* ---------- Analyse (étapes 2–3) ---------- */
-  async function photoEnBase64(img) {
-    const e = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight)); // image réduite = moins de jetons
-    const c = document.createElement("canvas");
-    c.width = Math.round(img.naturalWidth * e); c.height = Math.round(img.naturalHeight * e);
-    const ctx = c.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.drawImage(img, 0, 0, c.width, c.height);
-    return c.toDataURL("image/jpeg", 0.85).split(",")[1];
-  }
-
-  async function analyser(img, cle) {
-    const rep = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": cle,
-        "anthropic-version": "2026-10-21",
-        "anthropic-dangerous-direct-browser-access": "true"
-      },
-      body: JSON.stringify({
-        model: MODELE,
-        max_tokens: 2000,
-        thinking: { type: "disabled" },
-        output_config: { effort: "low" },
-        messages: [{ role: "user", content: [
-          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: await photoEnBase64(img) } },
-          { type: "text", text: CONSIGNE }
-        ] }]
-      })
-    });
-    const r = await rep.json().catch(() => ({}));
-    if (!rep.ok) throw new Error(r?.error?.message || `Erreur ${rep.status}`);
-    if (r.stop_reason === "refusal") throw new Error("L'analyse a été refusée pour cette photo.");
-    const texte = (r.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  /* JSON recollé : on tolère le texte ou les ``` autour */
+  function lireJSON(texte) {
     const debut = texte.indexOf("{"), fin = texte.lastIndexOf("}");
-    if (debut < 0 || fin < debut) throw new Error("Réponse illisible, remplis la description à la main.");
+    if (debut < 0 || fin < debut) throw new Error("pas de JSON");
     return JSON.parse(texte.slice(debut, fin + 1));
   }
 
@@ -367,22 +333,14 @@ ${JSON.stringify(MODELE_JSON)}`;
 
   /* ---------- Interface ---------- */
   const echap = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const notifier = msg => { if (typeof window.toast === "function") window.toast(msg); };
   const versBlob = cv => new Promise(ok => cv.toBlob(ok, "image/png"));
-  const lireCle = () => { try { return localStorage.getItem(CLE_API) || ""; } catch { return ""; } };
   const VERIF_MAIN = [
     "Le nombre de niveaux, de colonnes de fenêtres et de consoles correspond à la photo",
     "Les zones ne sortent pas de la façade (sauf store et étals, qui débordent exprès)",
     "Les étiquettes et la légende sont lisibles et ne coupent rien",
     "Chaque écart volontaire avec la photo est signalé"
   ];
-
-  const champCle = document.getElementById("d-cle");
-  if (champCle) {
-    champCle.value = lireCle();
-    champCle.addEventListener("change", () => {
-      try { champCle.value.trim() ? localStorage.setItem(CLE_API, champCle.value.trim()) : localStorage.removeItem(CLE_API); } catch {}
-    });
-  }
 
   window.decoupeFacade = async function (fichier, { telecharger, nomPropre }) {
     const bloc = document.createElement("div");
@@ -396,13 +354,7 @@ ${JSON.stringify(MODELE_JSON)}`;
     try { await img.decode(); } catch { etat("Impossible de lire ce fichier"); return; }
     await document.fonts?.ready;
 
-    let brut = MODELE_JSON, note = "Pas de clé : modèle à corriger à la main ci-dessous.";
-    const cle = lireCle();
-    if (cle) {
-      etat("Analyse de la façade…");
-      try { brut = await analyser(img, cle); note = "Analyse faite. Vérifie et corrige la description si besoin."; }
-      catch (e) { note = `Analyse impossible (${e.message}). Modèle à corriger à la main ci-dessous.`; }
-    }
+    let note = "Exemple Ken Hing affiché : colle la réponse de l'analyse ci-dessous, puis Redessiner.";
     const base = nomPropre(fichier.name);
 
     async function rendre(brut) {
@@ -414,8 +366,13 @@ ${JSON.stringify(MODELE_JSON)}`;
       bloc.innerHTML = `
         <img class="lego-apercu" src="${URL.createObjectURL(pngPlanche)}" alt="Planche de découpe">
         <div class="res-infos"><strong>${echap(d.nom)}</strong><span>${echap(note)}</span></div>
+        <ol class="facade-etapes">
+          <li><button class="btn-plein petit" data-a="prompt">⧉ Copier le prompt</button></li>
+          <li><a class="btn-texte petit-net" href="${LIEN_ANALYSE}" target="_blank" rel="noopener">↗ Ouvrir une conversation dédiée</a> : joins la photo, colle le prompt</li>
+          <li>Colle la réponse ci-dessous, puis ↻ Redessiner</li>
+        </ol>
         <ul class="facade-controles">${controles.map(c => `<li class="${c.ok === null ? "info" : c.ok ? "bon" : "faux"}">${c.ok === null ? "ℹ" : c.ok ? "✓" : "⚠"} ${echap(c.t)}</li>`).join("")}</ul>
-        <details class="facade-json"><summary>Description (JSON) à corriger</summary>
+        <details class="facade-json" open><summary>Description (JSON) à corriger</summary>
           <textarea spellcheck="false">${echap(JSON.stringify(brut, null, 2))}</textarea>
           <button class="btn-texte petit-net" data-a="redessiner">↻ Redessiner</button>
         </details>
@@ -423,7 +380,7 @@ ${JSON.stringify(MODELE_JSON)}`;
           ${VERIF_MAIN.map(t => `<label><input type="checkbox"> ${echap(t)}</label>`).join("")}
         </fieldset>
         <div class="lego-boutons">
-          <button class="btn-plein petit" data-a="planche" disabled>⬇ Planche</button>
+          <button class="btn-texte petit-net" data-a="planche" disabled>⬇ Planche</button>
           <button class="btn-texte petit-net" data-a="decoupe">⬇ Découpe</button>
           <button class="btn-texte petit-net" data-a="json">⬇ JSON</button>
         </div>`;
@@ -433,12 +390,16 @@ ${JSON.stringify(MODELE_JSON)}`;
       bloc.querySelector('[data-a="decoupe"]').addEventListener("click", () => telecharger(pngDecoupe, `${base}-decoupe.png`));
       bloc.querySelector('[data-a="json"]').addEventListener("click", () =>
         telecharger(new Blob([bloc.querySelector("textarea").value], { type: "application/json" }), `${base}-description.json`));
+      bloc.querySelector('[data-a="prompt"]').addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(CONSIGNE); notifier("Prompt copié"); }
+        catch { bloc.querySelector("textarea").value = CONSIGNE; notifier("Copie bloquée : le prompt est dans la zone de texte"); }
+      });
       bloc.querySelector('[data-a="redessiner"]').addEventListener("click", () => {
-        try { note = "Redessiné avec ta description."; rendre(JSON.parse(bloc.querySelector("textarea").value)); }
+        try { note = "Redessiné avec ta description."; rendre(lireJSON(bloc.querySelector("textarea").value)); }
         catch { bloc.querySelector("summary").textContent = "⚠ JSON invalide : vérifie les virgules et guillemets"; }
       });
     }
-    await rendre(brut);
+    await rendre(MODELE_JSON);
   };
 
   // Auto-contrôle au chargement : le modèle de départ doit passer tous les contrôles

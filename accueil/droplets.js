@@ -3,7 +3,7 @@
    Rien n'est envoyé sur internet.
    - Export web : redimensionne + compresse (WebP / JPEG / PNG)
    - Mosaïque LEGO : vue de dessus, en tenons, avec liste des pièces
-   - Découpe façade : voir facade.js (seule exception : la photo réduite part à l'analyse)
+   - Découpe façade : voir facade.js
    ========================================================== */
 "use strict";
 (() => {
