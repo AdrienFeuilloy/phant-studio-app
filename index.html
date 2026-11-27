@@ -2,7 +2,9 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.github.com https://generativelanguage.googleapis.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+    <meta name="referrer" content="no-referrer">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#CEB694">
     <title>Phant Studio — Suivi & Gestion Projets</title>
@@ -11,377 +13,370 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Phant Studio">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <link rel="preload" href="fonts/commissioner.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="tailwind.css">
+    <script src="vendor/lucide-0.460.0.min.js" defer></script>
+    <script src="script.js" defer></script>
 </head>
-<body class="min-h-screen flex flex-col antialiased">
+<body class="app min-h-screen flex flex-col">
 
     <!-- En-tête -->
-    <header class="border-b-2 border-[#1B1A18] bg-[#CEB694] sm:sticky sm:top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap gap-3 items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-[6px] bg-[#CC0C33] border-2 border-[#1B1A18] flex items-center justify-center shadow-[2px_2px_0px_#1B1A18] shrink-0">
-                    <i data-lucide="gamepad-2" class="w-7 h-7 text-[#EFEEEC]"></i>
-                </div>
-                <div>
-                    <h1 class="font-heading text-2xl sm:text-3xl tracking-wide text-[#1B1A18] flex items-center gap-2">
-                        PHANT STUDIO <span class="text-xs px-2 py-0.5 rounded-[6px] bg-[#EFEEEC] border-2 border-[#1B1A18] font-sans font-semibold">v3.0.0</span>
-                    </h1>
-                    <p class="hidden sm:block text-xs font-semibold text-[#1B1A18]/80">Chaque création en fait rêver d’autres.</p>
+    <header class="masthead">
+        <div class="masthead-in">
+            <div class="min-w-0">
+                <h1 class="wordmark m-0">PHANT STUDIO <span class="version">v3.1.0</span></h1>
+                <div class="brand-sub">
+                    <span id="sync-status-badge" class="sync sync-warning" role="status">Local uniquement</span>
+                    <span class="tagline hidden lg:inline">Chaque création en fait rêver d’autres.</span>
                 </div>
             </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-                <button id="header-timer-chip" onclick="switchTab('timer')" class="hidden text-xs font-bold px-2.5 py-1 rounded-[6px] border-2 border-[#1B1A18] bg-[#1B1A18] text-[#E3CFB4] items-center gap-1.5 shadow-[1px_1px_0px_#1B1A18]">
-                    <i data-lucide="timer" class="w-3.5 h-3.5"></i> <span id="header-timer-text">00:00:00</span>
+            <div class="head-actions">
+                <button id="header-timer-chip" type="button" data-action="switchTab" data-arg="dashboard" class="timer-chip num hidden" aria-label="Chrono en cours, ouvrir le tableau de bord">
+                    <span class="reg" aria-hidden="true"></span><span id="header-timer-text">0:00</span>
                 </button>
-                <span id="sync-status-badge" class="text-xs font-semibold px-2.5 py-1 rounded-[6px] border-2 border-[#1B1A18] bg-amber-200 text-amber-900 flex items-center gap-1.5 shadow-[1px_1px_0px_#1B1A18]">
-                    <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i> Local uniquement
-                </span>
-                <button onclick="openConfigModal()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
-                    <i data-lucide="settings" class="w-4 h-4 text-[#02968A]"></i> <span class="hidden sm:inline">Réglages & Sync</span><span class="sm:hidden">Réglages</span>
-                </button>
-                <a href="accueil/" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
-                    <i data-lucide="house" class="w-4 h-4 text-[#02968A]"></i> Accueil
+                <a href="accueil/" class="btn btn-ghost" aria-label="Accueil">
+                    <i data-lucide="house" aria-hidden="true"></i><span class="hidden md:inline">Accueil</span>
                 </a>
-                <button onclick="exportDataCSV()" class="retro-btn px-3 py-1.5 text-sm flex items-center gap-1.5">
-                    <i data-lucide="download" class="w-4 h-4"></i> CSV
+                <button type="button" data-action="openConfigModal" class="btn btn-ghost" aria-label="Réglages et synchronisation">
+                    <i data-lucide="settings" aria-hidden="true"></i><span class="hidden md:inline">Réglages</span>
+                </button>
+                <button type="button" data-action="exportDataCSV" class="btn btn-ghost hidden md:inline-flex">
+                    <i data-lucide="download" aria-hidden="true"></i> CSV
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Navigation par Onglets -->
-    <nav class="border-b-2 border-[#1B1A18] bg-[#E3CFB4]">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-3 overflow-x-auto py-3">
-            <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="tab-btn retro-btn px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
-                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Tableau de bord
+    <!-- Navigation : en haut sur PC, barre du bas sur téléphone -->
+    <nav class="tabs" aria-label="Sections">
+        <div class="tabs-in">
+            <button type="button" data-action="switchTab" data-arg="dashboard" id="btn-tab-dashboard" class="tab" aria-current="page">
+                <i data-lucide="layout-dashboard" aria-hidden="true"></i><span class="l-long">Tableau de bord</span><span class="l-short">Tableau</span>
             </button>
-            <button onclick="switchTab('timer')" id="btn-tab-timer" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
-                <i data-lucide="timer" class="w-5 h-5"></i> Chrono & Notes
+            <button type="button" data-action="switchTab" data-arg="timer" id="btn-tab-timer" class="tab">
+                <i data-lucide="timer" aria-hidden="true"></i><span class="l-long">Chrono & notes</span><span class="l-short">Chrono</span>
             </button>
-            <button onclick="switchTab('projects')" id="btn-tab-projects" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
-                <i data-lucide="folder-kanban" class="w-5 h-5"></i> Projets
+            <button type="button" data-action="switchTab" data-arg="projects" id="btn-tab-projects" class="tab">
+                <i data-lucide="folder-kanban" aria-hidden="true"></i><span>Projets</span>
             </button>
-            <button onclick="switchTab('planning')" id="btn-tab-planning" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
-                <i data-lucide="calendar-days" class="w-5 h-5"></i> Planning
+            <button type="button" data-action="switchTab" data-arg="planning" id="btn-tab-planning" class="tab">
+                <i data-lucide="calendar-days" aria-hidden="true"></i><span>Planning</span>
             </button>
-            <button onclick="switchTab('stats')" id="btn-tab-stats" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
-                <i data-lucide="bar-chart-3" class="w-5 h-5"></i> Stats
+            <button type="button" data-action="switchTab" data-arg="clients" id="btn-tab-clients" class="tab">
+                <i data-lucide="users" aria-hidden="true"></i><span>Clients</span>
             </button>
-            <button onclick="switchTab('clients')" id="btn-tab-clients" class="tab-btn retro-btn-secondary px-4 py-1.5 text-lg flex items-center gap-2 shrink-0">
-                <i data-lucide="users" class="w-5 h-5"></i> Clients
+            <button type="button" data-action="switchTab" data-arg="stats" id="btn-tab-stats" class="tab">
+                <i data-lucide="bar-chart-3" aria-hidden="true"></i><span>Stats</span>
             </button>
         </div>
     </nav>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main id="main" class="app-main flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12" tabindex="-1">
 
         <!-- ================= TABLEAU DE BORD ================= -->
-        <div id="tab-dashboard" class="tab-content space-y-6">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div class="retro-box p-4 sm:p-5 space-y-2">
-                    <p class="text-[10px] sm:text-xs font-semibold text-[#1B1A18]/70 uppercase">Heures ce mois</p>
-                    <h3 class="font-heading text-2xl sm:text-3xl text-[#1B1A18]" id="dash-month-hours">0h00</h3>
-                    <div id="dash-month-goal" class="space-y-1"></div>
+        <section id="tab-dashboard" class="tab-content" aria-labelledby="btn-tab-dashboard">
+            <h2 class="sr-only-text">Tableau de bord</h2>
+            <div class="dash">
+                <div class="dash-col">
+                    <!-- Chrono -->
+                    <section class="panel panel-strong crop chrono-panel" aria-label="Chrono">
+                        <div id="dash-chrono-running" class="hidden grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+                            <div class="min-w-0">
+                                <div id="dash-timer-display" class="chrono-big">00:00:00</div>
+                                <p id="dash-timer-project" class="mt-3 mb-0 font-semibold text-[17px]"></p>
+                                <p id="dash-timer-client" class="m-0 muted text-sm"></p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" id="dash-btn-pause" data-action="toggleTimerPause" class="btn btn-lg"><i data-lucide="pause" aria-hidden="true"></i><span>Pause</span></button>
+                                <button type="button" data-action="stopTimer" class="btn btn-primary btn-lg"><i data-lucide="square" aria-hidden="true"></i> Enregistrer</button>
+                            </div>
+                            <div id="dash-timer-slug" class="slug md:col-span-2"></div>
+                        </div>
+                        <div id="dash-chrono-idle" class="chrono-idle">
+                            <label for="quick-project-select" class="label m-0">Lancer le chrono sur</label>
+                            <div class="chrono-idle-row">
+                                <select id="quick-project-select" class="field">
+                                    <option value="">-- Sélectionner un projet --</option>
+                                </select>
+                                <button type="button" data-action="quickStartTimer" class="btn btn-primary btn-lg">
+                                    <i data-lucide="play" aria-hidden="true"></i> Lancer
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- À surveiller -->
+                    <section class="panel" aria-labelledby="dash-alerts-title">
+                        <div class="ph"><h3 id="dash-alerts-title" class="ph-title">À surveiller</h3><span id="dash-alert-count" class="count"></span></div>
+                        <div id="dash-alerts" class="rows"></div>
+                    </section>
+
+                    <!-- Projets récents -->
+                    <section class="panel" aria-labelledby="dash-projects-title">
+                        <div class="ph"><h3 id="dash-projects-title" class="ph-title">Projets récents</h3><button type="button" data-action="switchTab" data-arg="projects" class="link">Tous les projets</button></div>
+                        <div id="dash-projects-list" class="rows"></div>
+                    </section>
                 </div>
-                <div class="retro-box p-4 sm:p-5 space-y-1">
-                    <p class="text-[10px] sm:text-xs font-semibold text-[#1B1A18]/70 uppercase">Total heures travaillées</p>
-                    <h3 class="font-heading text-2xl sm:text-3xl text-[#1B1A18]" id="dash-total-hours">0h00</h3>
-                </div>
-                <div class="retro-box p-4 sm:p-5 space-y-1">
-                    <p class="text-[10px] sm:text-xs font-semibold text-[#1B1A18]/70 uppercase">Valeur estimée du temps</p>
-                    <h3 class="font-heading text-2xl sm:text-3xl text-[#1B1A18]" id="dash-total-revenue">0,00 €</h3>
-                </div>
-                <div class="retro-box p-4 sm:p-5 space-y-1">
-                    <p class="text-[10px] sm:text-xs font-semibold text-[#1B1A18]/70 uppercase">Projets actifs / Clients</p>
-                    <h3 class="font-heading text-2xl sm:text-3xl text-[#1B1A18]"><span id="dash-active-projects">0</span> <span class="text-xl text-[#1B1A18]/60">/ <span id="dash-total-clients">0</span></span></h3>
+
+                <div class="dash-col">
+                    <!-- Le mois en cours -->
+                    <section class="panel" aria-labelledby="dash-month-title">
+                        <div class="ph"><h3 id="dash-month-title" class="ph-title">Ce mois-ci</h3><span id="dash-month-goal-label" class="muted text-sm"></span></div>
+                        <div class="pb grid gap-3">
+                            <div class="flex items-baseline gap-3 flex-wrap"><span id="dash-month-hours" class="month-big">0h00</span><span id="dash-month-pct" class="muted text-sm"></span></div>
+                            <div id="dash-month-goal"></div>
+                        </div>
+                        <div class="pair">
+                            <div><div class="pair-label">Projets en cours</div><div id="dash-active-projects" class="pair-value">0</div></div>
+                            <div><div class="pair-label">Clients</div><div id="dash-total-clients" class="pair-value">0</div></div>
+                        </div>
+                    </section>
                 </div>
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="retro-box p-6 space-y-4">
-                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18] flex items-center gap-2"><i data-lucide="bell-ring" class="w-6 h-6 text-[#CC0C33]"></i> À surveiller</h2>
-                        <div id="dash-alerts" class="space-y-2"></div>
-                    </div>
-                    <div class="retro-box p-6 space-y-4">
-                        <div class="flex items-center justify-between">
-                            <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Projets récents</h2>
-                            <button onclick="switchTab('projects')" class="text-sm font-semibold underline hover:text-[#CC0C33]">Voir tout</button>
-                        </div>
-                        <div id="dash-projects-list" class="space-y-3"></div>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="retro-box-beige p-6 space-y-4">
-                        <div class="space-y-2">
-                            <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Session rapide</h2>
-                            <p class="text-sm">Choisissez un projet pour lancer directement le chrono.</p>
-                        </div>
-                        <div class="space-y-3">
-                            <select id="quick-project-select" class="retro-input w-full text-sm">
-                                <option value="">-- Sélectionner un projet --</option>
-                            </select>
-                            <button onclick="quickStartTimer()" class="retro-btn w-full py-2.5 text-lg flex items-center justify-center gap-2">
-                                <i data-lucide="play" class="w-5 h-5"></i> Lancer le chrono
-                            </button>
-                        </div>
-                    </div>
-                    <div class="retro-box p-6 space-y-3">
-                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Prochaines échéances</h2>
-                        <div id="dash-upcoming" class="space-y-2 text-sm"></div>
-                        <button onclick="switchTab('planning')" class="text-sm font-semibold underline hover:text-[#CC0C33]">Ouvrir le planning</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </section>
 
         <!-- ================= CHRONO & NOTES ================= -->
-        <div id="tab-timer" class="tab-content hidden space-y-8">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section id="tab-timer" class="tab-content hidden grid gap-6" aria-labelledby="btn-tab-timer">
+            <div class="page-head">
+                <div>
+                    <h2 class="page-title">Chrono & notes</h2>
+                    <p class="page-sub">Le chrono continue même si vous fermez la page.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" data-action="openSessionsModal" class="btn"><i data-lucide="history" aria-hidden="true"></i> Historique des sessions</button>
+                    <button type="button" data-action="openDecompilerModal" class="btn" title="Scan de conversation ou d'image client"><i data-lucide="sparkles" aria-hidden="true"></i> Décompilateur IA</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <!-- Chronomètre -->
-                <div class="retro-box p-6 space-y-6 flex flex-col items-center text-center">
-                    <div class="w-12 h-12 rounded-[6px] bg-[#CC0C33] border-2 border-[#1B1A18] flex items-center justify-center text-[#EFEEEC] shadow-[2px_2px_0px_#1B1A18]">
-                        <i data-lucide="timer" class="w-6 h-6"></i>
-                    </div>
-                    <div>
-                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Chronomètre</h2>
-                        <p class="text-xs font-semibold">Continue même si vous fermez la page</p>
-                    </div>
-
-                    <div id="timer-forgot-banner" class="hidden w-full bg-amber-200 border-2 border-[#1B1A18] rounded-[6px] p-3 text-left text-xs font-semibold space-y-2">
-                        <p>⏰ Le chrono tourne depuis plus de 4 heures. Vous l'avez peut-être oublié ?</p>
-                        <button onclick="fixForgottenTimer()" class="retro-btn-secondary px-2.5 py-1 text-sm">Corriger la durée</button>
-                    </div>
-
-                    <div class="w-full space-y-3 text-left">
-                        <label for="timer-project-select" class="text-xs font-semibold uppercase">Projet associé :</label>
-                        <select id="timer-project-select" class="retro-input w-full text-sm" onchange="onTimerFieldChange()">
-                            <option value="">-- Sélectionner un projet --</option>
-                        </select>
-
-                        <label for="timer-category" class="text-xs font-semibold uppercase">Catégorie :</label>
-                        <input type="text" id="timer-category" class="retro-input w-full text-sm" value="Production" list="category-suggestions" oninput="onTimerFieldChange()">
-
-                        <label for="timer-notes" class="text-xs font-semibold uppercase">Notes rapides :</label>
-                        <input type="text" id="timer-notes" class="retro-input w-full text-sm" placeholder="Détails de la session..." oninput="onTimerFieldChange()">
-                    </div>
-
-                    <div class="py-6 w-full bg-[#23211D] text-[#EFEEEC] rounded-[6px] border-2 border-[#1B1A18] shadow-[inset_2px_2px_0px_rgba(0,0,0,0.5)]">
-                        <span id="timer-display" class="font-heading text-5xl tracking-widest text-[#E3CFB4]">00:00:00</span>
-                    </div>
-
-                    <div class="flex items-center gap-2 w-full">
-                        <button id="btn-start-timer" onclick="startTimer()" class="retro-btn flex-1 py-2 text-base">Lancer</button>
-                        <button id="btn-pause-timer" onclick="pauseTimer()" disabled class="retro-btn-secondary flex-1 py-2 text-base">Pause</button>
-                        <button id="btn-stop-timer" onclick="stopTimer()" disabled class="retro-btn flex-1 py-2 text-base bg-[#02968A]">Enregistrer</button>
-                    </div>
-                    <button id="btn-reset-timer" onclick="discardTimer()" disabled class="text-xs underline font-semibold hover:text-[#CC0C33] disabled:opacity-40 disabled:no-underline">Annuler ce chrono sans l'enregistrer</button>
-                </div>
-
-                <!-- Carnets de notes -->
-                <div class="lg:col-span-2 retro-box p-6 space-y-4 flex flex-col">
-                    <div class="flex flex-wrap gap-2 items-center justify-between border-b-2 border-[#1B1A18] pb-3">
+                <section class="panel panel-strong crop" aria-labelledby="timer-title">
+                    <div class="ph"><h3 id="timer-title" class="ph-title">Chronomètre</h3></div>
+                    <div class="pb grid gap-4">
+                        <div id="timer-forgot-banner" class="hidden note-warn grid gap-2">
+                            <p class="m-0">Le chrono tourne depuis plus de 4 heures. Vous l'avez peut-être oublié ?</p>
+                            <button type="button" data-action="fixForgottenTimer" class="btn btn-sm justify-self-start">Corriger la durée</button>
+                        </div>
+                        <span id="timer-display" class="timer-display" role="timer" aria-live="off">00:00:00</span>
                         <div>
-                            <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Carnet de notes</h2>
-                            <p id="notes-save-status" class="text-[11px] font-semibold text-[#1B1A18]/60">Enregistrement automatique</p>
+                            <label for="timer-project-select" class="label">Projet</label>
+                            <select id="timer-project-select" class="field" data-change="onTimerFieldChange">
+                                <option value="">-- Sélectionner un projet --</option>
+                            </select>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="openDecompilerModal()" title="Décompilateur IA (scan de conversation / image client)" class="retro-btn px-2.5 py-1 text-sm flex items-center gap-1 bg-[#D1A802] text-[#1B1A18]">
-                                <i data-lucide="sparkles" class="w-4 h-4"></i> <span class="hidden sm:inline">Décompilateur IA</span>
-                            </button>
-                            <button onclick="openSessionsModal()" class="retro-btn-secondary px-3 py-1 text-sm flex items-center gap-1.5">
-                                <i data-lucide="history" class="w-4 h-4"></i> Historique
-                            </button>
+                        <div>
+                            <label for="timer-category" class="label">Catégorie</label>
+                            <input type="text" id="timer-category" class="field" value="Production" list="category-suggestions" data-input="onTimerFieldChange">
                         </div>
+                        <div>
+                            <label for="timer-notes" class="label">Notes rapides</label>
+                            <input type="text" id="timer-notes" class="field" placeholder="Détails de la session…" data-input="onTimerFieldChange">
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" id="btn-start-timer" data-action="startTimer" class="btn btn-primary">Lancer</button>
+                            <button type="button" id="btn-pause-timer" data-action="pauseTimer" disabled class="btn">Pause</button>
+                            <button type="button" id="btn-stop-timer" data-action="stopTimer" disabled class="btn">Enregistrer</button>
+                        </div>
+                        <button type="button" id="btn-reset-timer" data-action="discardTimer" disabled class="link link-danger justify-self-center">Annuler ce chrono sans l'enregistrer</button>
                     </div>
+                </section>
 
-                    <div class="flex flex-wrap items-center gap-2">
-                        <label for="notes-target" class="text-xs font-semibold uppercase">Carnet :</label>
-                        <select id="notes-target" onchange="switchNotesTarget(this.value)" class="retro-input text-sm flex-1 min-w-[200px]"></select>
-                        <button id="notes-open-project" onclick="openProjectDetailModal(currentNotesTarget)" class="hidden retro-btn-secondary px-2.5 py-1 text-sm">Fiche projet</button>
+                <!-- Carnet de notes -->
+                <section class="panel lg:col-span-2 flex flex-col" aria-labelledby="notes-title">
+                    <div class="ph flex-wrap">
+                        <h3 id="notes-title" class="ph-title">Carnet de notes</h3>
+                        <span id="notes-save-status" class="muted text-[13px]" aria-live="polite">Enregistrement automatique</span>
                     </div>
-
-                    <div class="flex flex-wrap gap-2 bg-[#CEB694] p-2 border-2 border-[#1B1A18] rounded-[6px]">
-                        <button onmousedown="event.preventDefault()" onclick="formatText('bold')" class="tool-btn font-bold">Gras</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('italic')" class="tool-btn italic">Italique</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('underline')" class="tool-btn underline">Souligné</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('formatBlock', 'h2')" class="tool-btn font-heading">Titre</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('formatBlock', 'p')" class="tool-btn">Texte</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('insertUnorderedList')" class="tool-btn">• Puces</button>
-                        <button onmousedown="event.preventDefault()" onclick="formatText('insertOrderedList')" class="tool-btn">1. Liste</button>
-                        <button onclick="clearNotes()" class="tool-btn ml-auto hover:text-[#CC0C33]">Tout effacer</button>
+                    <div class="pb grid gap-3 flex-1">
+                        <div class="flex flex-wrap items-end gap-2">
+                            <div class="flex-1 min-w-[200px]">
+                                <label for="notes-target" class="label">Carnet</label>
+                                <select id="notes-target" data-change="switchNotesTarget" data-with-value class="field"></select>
+                            </div>
+                            <button type="button" id="notes-open-project" data-action="openCurrentNotesProject" class="hidden btn">Fiche projet</button>
+                        </div>
+                        <div class="toolbar" role="toolbar" aria-label="Mise en forme">
+                            <button type="button" data-keep-focus data-action="formatText" data-id="bold" class="tool-btn font-bold">Gras</button>
+                            <button type="button" data-keep-focus data-action="formatText" data-id="italic" class="tool-btn italic">Italique</button>
+                            <button type="button" data-keep-focus data-action="formatText" data-id="underline" class="tool-btn underline">Souligné</button>
+                            <button type="button" data-keep-focus data-action="formatText" data-id="formatBlock" data-arg="h2" class="tool-btn font-heading">Titre</button>
+                            <button type="button" data-keep-focus data-action="formatText" data-id="formatBlock" data-arg="p" class="tool-btn">Texte</button>
+                            <button type="button" data-keep-focus data-action="formatText" data-id="insertUnorderedList" class="tool-btn">• Puces</button>
+                            <button type="button" data-keep-focus data-action="formatText" data-id="insertOrderedList" class="tool-btn">1. Liste</button>
+                            <button type="button" data-action="clearNotes" class="tool-btn ml-auto">Tout effacer</button>
+                        </div>
+                        <div id="rich-text-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Notes" class="field flex-1 min-h-[320px] overflow-y-auto p-4" data-placeholder="Notes de réunion, idées, comptes-rendus… (enregistrement automatique)"></div>
                     </div>
-
-                    <div id="rich-text-editor" contenteditable="true" class="retro-input flex-1 min-h-[300px] bg-white overflow-y-auto focus:outline-none p-4" data-placeholder="Écrivez vos notes de réunion, idées ou comptes-rendus ici... (enregistrement automatique)"></div>
-                </div>
+                </section>
             </div>
 
             <!-- Questionnaires -->
-            <div class="retro-box p-6 space-y-4">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18] flex items-center gap-2">
-                            <i data-lucide="layout-template" class="w-6 h-6 text-[#CC0C33]"></i> Questionnaires prédéfinis
-                        </h2>
-                        <p class="text-xs font-semibold text-[#1B1A18]/70">Cliquez pour insérer un brief type dans le carnet ouvert.</p>
-                    </div>
+            <section class="panel" aria-labelledby="quest-title">
+                <div class="ph flex-wrap">
+                    <h3 id="quest-title" class="ph-title">Questionnaires prédéfinis</h3>
                     <div class="flex flex-wrap gap-2">
-                        <button onclick="loadQuestionnaire('mariage')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#CC0C33]"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Mariage</button>
-                        <button onclick="loadQuestionnaire('affiches')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#02968A]"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Affiches</button>
-                        <button onclick="loadQuestionnaire('logo')" class="retro-btn px-3 py-1.5 text-xs flex items-center gap-1 bg-[#D1A802] text-[#1B1A18]"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Logo / DA</button>
+                        <button type="button" data-action="loadQuestionnaire" data-id="mariage" class="btn btn-sm"><i data-lucide="copy" aria-hidden="true"></i> Mariage</button>
+                        <button type="button" data-action="loadQuestionnaire" data-id="affiches" class="btn btn-sm"><i data-lucide="copy" aria-hidden="true"></i> Affiches</button>
+                        <button type="button" data-action="loadQuestionnaire" data-id="logo" class="btn btn-sm"><i data-lucide="copy" aria-hidden="true"></i> Logo / DA</button>
                     </div>
                 </div>
-                <details class="group">
-                    <summary class="cursor-pointer text-sm font-semibold underline">Voir le contenu des questionnaires</summary>
-                    <div class="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                        <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                            <h4 class="font-heading text-lg text-[#CC0C33]">Mariage & papeterie</h4>
-                            <ul class="list-disc list-inside space-y-1">
-                                <li><strong>Vision :</strong> date, lieu, ambiance, palette, histoire du couple, inspirations.</li>
-                                <li><strong>Papeterie :</strong> save the date, faire-part, RSVP, jour J, remerciements.</li>
-                                <li><strong>Technique :</strong> quantités, textes, formats, papiers, finitions.</li>
-                                <li><strong>Calendrier :</strong> planning d'envoi, budget global.</li>
-                            </ul>
+                <div class="pb grid gap-3">
+                    <p class="hint m-0">Un clic insère le brief type dans le carnet ouvert.</p>
+                    <details>
+                        <summary class="link inline-block">Voir le contenu des questionnaires</summary>
+                        <div class="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div class="box-kraft grid gap-2">
+                                <h4 class="sheet-section-title">Mariage & papeterie</h4>
+                                <ul class="list-disc pl-5 grid gap-1 m-0">
+                                    <li><strong>Vision :</strong> date, lieu, ambiance, palette, histoire du couple, inspirations.</li>
+                                    <li><strong>Papeterie :</strong> save the date, faire-part, RSVP, jour J, remerciements.</li>
+                                    <li><strong>Technique :</strong> quantités, textes, formats, papiers, finitions.</li>
+                                    <li><strong>Calendrier :</strong> planning d'envoi, budget global.</li>
+                                </ul>
+                            </div>
+                            <div class="box-kraft grid gap-2">
+                                <h4 class="sheet-section-title">Affiches & événementiel</h4>
+                                <ul class="list-disc pl-5 grid gap-1 m-0">
+                                    <li><strong>Message :</strong> nom de l'événement, message clé, call to action.</li>
+                                    <li><strong>DA :</strong> style, palette, logos partenaires.</li>
+                                    <li><strong>Technique :</strong> formats print, déclinaisons web, contraintes imprimeur.</li>
+                                    <li><strong>Calendrier :</strong> BAT, lancement campagne.</li>
+                                </ul>
+                            </div>
+                            <div class="box-kraft grid gap-2">
+                                <h4 class="sheet-section-title">Logo & identité</h4>
+                                <ul class="list-disc pl-5 grid gap-1 m-0">
+                                    <li><strong>Entreprise :</strong> activité, cible, valeurs.</li>
+                                    <li><strong>Graphisme :</strong> style, couleurs, typos, concurrence.</li>
+                                    <li><strong>Livrables :</strong> déclinaisons, charte, supports.</li>
+                                    <li><strong>Planning & droits :</strong> deadline, cession de droits.</li>
+                                </ul>
+                            </div>
                         </div>
-                        <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                            <h4 class="font-heading text-lg text-[#02968A]">Affiches & événementiel</h4>
-                            <ul class="list-disc list-inside space-y-1">
-                                <li><strong>Message :</strong> nom de l'événement, message clé, call to action.</li>
-                                <li><strong>DA :</strong> style, palette, logos partenaires.</li>
-                                <li><strong>Technique :</strong> formats print, déclinaisons web, contraintes imprimeur.</li>
-                                <li><strong>Calendrier :</strong> BAT, lancement campagne.</li>
-                            </ul>
-                        </div>
-                        <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] p-4 space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                            <h4 class="font-heading text-lg text-[#B08D00]">Logo & identité</h4>
-                            <ul class="list-disc list-inside space-y-1">
-                                <li><strong>Entreprise :</strong> activité, cible, valeurs.</li>
-                                <li><strong>Graphisme :</strong> style, couleurs, typos, concurrence.</li>
-                                <li><strong>Livrables :</strong> déclinaisons, charte, supports.</li>
-                                <li><strong>Planning & droits :</strong> deadline, cession de droits.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </details>
-            </div>
-        </div>
+                    </details>
+                </div>
+            </section>
+        </section>
 
         <!-- ================= PROJETS ================= -->
-        <div id="tab-projects" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <section id="tab-projects" class="tab-content hidden grid gap-4" aria-labelledby="btn-tab-projects">
+            <div class="page-head">
                 <div>
-                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Gestion des projets</h2>
-                    <p class="text-xs font-semibold text-[#1B1A18]/70">Cliquez sur un projet pour ouvrir sa fiche complète (étapes, liens, notes, sessions).</p>
+                    <h2 class="page-title">Projets</h2>
+                    <p class="page-sub">Ouvrez un projet pour voir ses étapes, liens, notes et sessions.</p>
                 </div>
-                <button onclick="openProjectModal()" class="retro-btn px-4 py-2 text-lg flex items-center justify-center gap-2">
-                    <i data-lucide="plus" class="w-5 h-5"></i> Nouveau projet
-                </button>
+                <button type="button" data-action="openProjectModal" class="btn btn-primary"><i data-lucide="plus" aria-hidden="true"></i> Nouveau projet</button>
             </div>
-            <div class="flex flex-col md:flex-row gap-3 md:items-center">
-                <div class="relative flex-1">
-                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#1B1A18]/50"></i>
-                    <input type="search" id="project-search" oninput="renderProjects()" placeholder="Rechercher un projet, un client..." class="retro-input w-full text-sm pl-9">
+            <div class="sticky-tools grid gap-3">
+                <div class="relative">
+                    <label for="project-search" class="sr-only-text">Rechercher un projet</label>
+                    <input type="search" id="project-search" data-input="renderProjects" placeholder="Rechercher un projet, un client…" class="field">
                 </div>
-                <div id="project-status-filters" class="flex flex-wrap gap-2"></div>
+                <div id="project-status-filters" class="flex flex-wrap gap-2" role="group" aria-label="Filtrer par statut"></div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-grid"></div>
-        </div>
+            <div class="cards" id="projects-grid"></div>
+        </section>
 
         <!-- ================= PLANNING ================= -->
-        <div id="tab-planning" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <section id="tab-planning" class="tab-content hidden grid gap-6" aria-labelledby="btn-tab-planning">
+            <div class="page-head">
                 <div>
-                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Planning</h2>
-                    <p class="text-xs font-semibold text-[#1B1A18]/70">Deadlines des projets et dates des étapes.</p>
+                    <h2 class="page-title">Planning</h2>
+                    <p class="page-sub">Deadlines des projets et dates des étapes.</p>
                 </div>
-                <button onclick="exportICS()" class="retro-btn-secondary px-4 py-2 text-base flex items-center gap-2">
-                    <i data-lucide="calendar-plus" class="w-5 h-5"></i> Exporter vers mon agenda (.ics)
-                </button>
+                <button type="button" data-action="exportICS" class="btn"><i data-lucide="calendar-plus" aria-hidden="true"></i> Exporter vers mon agenda (.ics)</button>
             </div>
-            <div class="retro-box p-4 sm:p-6 space-y-4">
-                <div class="flex items-center justify-between gap-2">
-                    <button onclick="changeCalendarMonth(-1)" class="retro-btn-secondary px-3 py-1 text-base" aria-label="Mois précédent">‹</button>
-                    <div class="text-center">
-                        <h3 id="cal-title" class="font-heading text-2xl capitalize">Mois</h3>
-                        <button onclick="changeCalendarMonth(0)" class="text-xs underline font-semibold">Aujourd'hui</button>
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-start">
+                <section class="panel" aria-labelledby="cal-title">
+                    <div class="ph">
+                        <button type="button" data-action="changeCalendarMonth" data-arg="-1" class="btn btn-icon btn-ghost" aria-label="Mois précédent"><i data-lucide="chevron-left" aria-hidden="true"></i></button>
+                        <div class="flex-1 text-center">
+                            <h3 id="cal-title" class="m-0 font-heading text-2xl capitalize">Mois</h3>
+                            <button type="button" data-action="changeCalendarMonth" data-arg="0" class="link text-[13px] py-0">Aujourd'hui</button>
+                        </div>
+                        <button type="button" data-action="changeCalendarMonth" data-arg="1" class="btn btn-icon btn-ghost" aria-label="Mois suivant"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
                     </div>
-                    <button onclick="changeCalendarMonth(1)" class="retro-btn-secondary px-3 py-1 text-base" aria-label="Mois suivant">›</button>
-                </div>
-                <div class="flex flex-wrap gap-3 text-[11px] font-semibold">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#CC0C33] border border-[#1B1A18]"></span> Deadline projet</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#02968A] border border-[#1B1A18]"></span> Étape</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#EFEEEC] border border-[#1B1A18]"></span> Étape faite</span>
-                </div>
-                <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-xs"></div>
+                    <div class="pb grid gap-3">
+                        <div class="legend">
+                            <span><i class="bg-[#CC0C33]"></i> Deadline projet</span>
+                            <span><i class="bg-[#02968A]"></i> Étape</span>
+                            <span><i class="bg-[#EFEEEC] border border-[#1B1A18]"></i> Étape faite</span>
+                        </div>
+                        <div id="calendar-grid" class="cal"></div>
+                    </div>
+                </section>
+                <section class="panel" aria-labelledby="upcoming-title">
+                    <div class="ph"><h3 id="upcoming-title" class="ph-title">30 prochains jours</h3></div>
+                    <div id="planning-upcoming" class="rows"></div>
+                </section>
             </div>
-            <div class="retro-box p-6 space-y-3">
-                <h3 class="font-heading text-xl">Dans les 30 prochains jours</h3>
-                <div id="planning-upcoming" class="space-y-2 text-sm"></div>
+        </section>
+
+        <!-- ================= CLIENTS ================= -->
+        <section id="tab-clients" class="tab-content hidden grid gap-4" aria-labelledby="btn-tab-clients">
+            <div class="page-head">
+                <div>
+                    <h2 class="page-title">Clients</h2>
+                    <p class="page-sub">Coordonnées de facturation et de livraison.</p>
+                </div>
+                <button type="button" data-action="openClientModal" class="btn btn-primary"><i data-lucide="plus" aria-hidden="true"></i> Nouveau client</button>
             </div>
-        </div>
+            <div class="sticky-tools">
+                <label for="client-search" class="sr-only-text">Rechercher un client</label>
+                <input type="search" id="client-search" data-input="renderClients" placeholder="Nom, entreprise, email, téléphone…" class="field">
+            </div>
+            <div class="cards" id="clients-grid"></div>
+        </section>
 
         <!-- ================= STATS ================= -->
-        <div id="tab-stats" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <section id="tab-stats" class="tab-content hidden grid gap-6" aria-labelledby="btn-tab-stats">
+            <div class="page-head">
                 <div>
-                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Statistiques</h2>
-                    <p class="text-xs font-semibold text-[#1B1A18]/70">Votre temps de travail, mois par mois.</p>
+                    <h2 class="page-title">Statistiques</h2>
+                    <p class="page-sub">Votre temps de travail, mois par mois.</p>
                 </div>
-                <div class="flex items-end gap-2">
-                    <div>
-                        <label for="goal-input" class="text-[11px] font-semibold uppercase block">Objectif mensuel (heures)</label>
-                        <input type="number" id="goal-input" min="0" step="1" class="retro-input w-32 text-sm" placeholder="ex : 80" onchange="saveMonthlyGoal(this.value)">
-                    </div>
+                <div>
+                    <label for="goal-input" class="label">Objectif mensuel (heures)</label>
+                    <input type="number" id="goal-input" min="0" step="1" inputmode="numeric" class="field w-36" placeholder="ex : 80" data-change="saveMonthlyGoal" data-with-value>
                 </div>
             </div>
 
-            <div class="retro-box p-6 space-y-4">
-                <h3 class="font-heading text-xl">Heures travaillées — 12 derniers mois</h3>
-                <div id="stats-months" class="space-y-1"></div>
-            </div>
+            <section class="panel" aria-label="Depuis le début">
+                <div class="pair border-t-0">
+                    <div><div class="pair-label">Heures depuis le début</div><div id="dash-total-hours" class="pair-value">0h00</div></div>
+                    <div><div class="pair-label">Valeur estimée du temps</div><div id="dash-total-revenue" class="pair-value">0,00 €</div></div>
+                </div>
+            </section>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="retro-box p-6 space-y-4">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <h3 class="font-heading text-xl">Répartition par catégorie</h3>
-                        <select id="stats-period" onchange="renderStats()" class="retro-input text-sm">
+            <section class="panel" aria-labelledby="months-title">
+                <div class="ph"><h3 id="months-title" class="ph-title">Heures travaillées · 12 derniers mois</h3></div>
+                <div id="stats-months" class="pb grid gap-2"></div>
+            </section>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <section class="panel" aria-labelledby="cats-title">
+                    <div class="ph flex-wrap">
+                        <h3 id="cats-title" class="ph-title">Par catégorie</h3>
+                        <label for="stats-period" class="sr-only-text">Période</label>
+                        <select id="stats-period" data-change="renderStats" class="field field-inline min-h-[36px] py-1 text-[15px]">
                             <option value="month">Ce mois-ci</option>
                             <option value="lastmonth">Mois dernier</option>
                             <option value="12m" selected>12 derniers mois</option>
                             <option value="all">Depuis le début</option>
                         </select>
                     </div>
-                    <div id="stats-categories" class="space-y-2"></div>
-                </div>
-                <div class="retro-box p-6 space-y-4">
-                    <h3 class="font-heading text-xl">Temps réel vs prévu (forfaits)</h3>
-                    <p class="text-xs text-[#1B1A18]/70">Renseignez le « prix du forfait » d'un projet pour voir combien vous gagnez réellement par heure.</p>
-                    <div id="stats-forfaits" class="overflow-x-auto"></div>
-                </div>
+                    <div id="stats-categories" class="pb grid gap-3"></div>
+                </section>
+                <section class="panel" aria-labelledby="forfaits-title">
+                    <div class="ph"><h3 id="forfaits-title" class="ph-title">Temps réel vs prévu (forfaits)</h3></div>
+                    <div class="pb grid gap-3">
+                        <p class="hint m-0">Renseignez le « prix du forfait » d'un projet pour voir combien vous gagnez réellement par heure.</p>
+                        <div id="stats-forfaits" class="overflow-x-auto"></div>
+                    </div>
+                </section>
             </div>
-        </div>
-
-        <!-- ================= CLIENTS ================= -->
-        <div id="tab-clients" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h2 class="font-heading text-2xl tracking-wide text-[#1B1A18]">Gestion des clients</h2>
-                    <p class="text-xs font-semibold text-[#1B1A18]/70">Coordonnées de facturation et de livraison.</p>
-                </div>
-                <button onclick="openClientModal()" class="retro-btn px-4 py-2 text-lg flex items-center justify-center gap-2">
-                    <i data-lucide="plus" class="w-5 h-5"></i> Nouveau client
-                </button>
-            </div>
-            <div class="relative">
-                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#1B1A18]/50"></i>
-                <input type="search" id="client-search" oninput="renderClients()" placeholder="Rechercher un nom, une entreprise, un email, un téléphone..." class="retro-input w-full text-sm pl-9">
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="clients-grid"></div>
-        </div>
+        </section>
 
     </main>
 
@@ -394,394 +389,377 @@
         <option value="Administratif"></option>
     </datalist>
 
-    <!-- MODAL : HISTORIQUE DES SESSIONS -->
-    <div id="sessions-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-5xl max-h-[85vh] overflow-y-auto p-6 space-y-5">
-            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 class="font-heading text-2xl text-[#1B1A18]">Historique des sessions de travail</h3>
-                <button onclick="closeModal('sessions-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+    <!-- FENÊTRE : HISTORIQUE DES SESSIONS -->
+    <div id="sessions-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="sessions-title">
+        <div class="sheet sheet-xl">
+            <div class="sheet-head">
+                <h3 id="sessions-title" class="sheet-title">Historique des sessions</h3>
+                <button type="button" data-action="closeModal" data-id="sessions-modal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
             </div>
-            <div class="flex flex-wrap items-end gap-3">
-                <div>
-                    <label for="sessions-filter-month" class="text-[11px] font-semibold uppercase block">Mois</label>
-                    <input type="month" id="sessions-filter-month" onchange="renderSessions()" class="retro-input text-sm">
+            <div class="sheet-body">
+                <div class="flex flex-wrap items-end gap-3">
+                    <div>
+                        <label for="sessions-filter-month" class="label">Mois</label>
+                        <input type="month" id="sessions-filter-month" data-change="renderSessions" class="field">
+                    </div>
+                    <div class="flex-1 min-w-[180px]">
+                        <label for="sessions-filter-project" class="label">Projet</label>
+                        <select id="sessions-filter-project" data-change="renderSessions" class="field"></select>
+                    </div>
+                    <button type="button" data-action="clearSessionFilters" class="link">Effacer les filtres</button>
+                    <button type="button" data-action="openManualSessionModal" class="btn btn-primary sm:ml-auto"><i data-lucide="plus" aria-hidden="true"></i> Session manuelle</button>
                 </div>
-                <div class="flex-1 min-w-[180px]">
-                    <label for="sessions-filter-project" class="text-[11px] font-semibold uppercase block">Projet</label>
-                    <select id="sessions-filter-project" onchange="renderSessions()" class="retro-input text-sm w-full"></select>
+                <p id="sessions-total" class="m-0 font-semibold" aria-live="polite"></p>
+                <div class="table-wrap">
+                    <table class="table table-stack">
+                        <thead>
+                            <tr><th>Date</th><th>Projet</th><th>Catégorie</th><th>Durée</th><th>Notes</th><th class="text-right">Actions</th></tr>
+                        </thead>
+                        <tbody id="sessions-table-body"></tbody>
+                    </table>
                 </div>
-                <button onclick="clearSessionFilters()" class="text-xs underline font-semibold pb-2">Effacer les filtres</button>
-                <button onclick="openManualSessionModal()" class="retro-btn px-3 py-1.5 text-sm flex items-center gap-1.5 ml-auto">
-                    <i data-lucide="plus" class="w-4 h-4"></i> Session manuelle
-                </button>
-            </div>
-            <p id="sessions-total" class="text-sm font-semibold"></p>
-            <div class="overflow-x-auto bg-white border-2 border-[#1B1A18] rounded-[6px]">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-[#CEB694] text-[#1B1A18] font-heading text-base border-b-2 border-[#1B1A18]">
-                        <tr>
-                            <th class="py-2 px-4">Date</th>
-                            <th class="py-2 px-4">Projet</th>
-                            <th class="py-2 px-4">Catégorie</th>
-                            <th class="py-2 px-4">Durée</th>
-                            <th class="py-2 px-4">Notes</th>
-                            <th class="py-2 px-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sessions-table-body"></tbody>
-                </table>
             </div>
         </div>
     </div>
 
-    <!-- MODAL : DÉCOMPILATEUR IA -->
-    <div id="decompiler-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-6">
-            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 class="font-heading text-2xl text-[#1B1A18] flex items-center gap-2">
-                    <i data-lucide="sparkles" class="w-6 h-6 text-[#D1A802]"></i> Décompilateur IA de conversation client
-                </h3>
-                <button onclick="closeModal('decompiler-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
+    <!-- FENÊTRE : DÉCOMPILATEUR IA -->
+    <div id="decompiler-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="decompiler-title">
+        <div class="sheet sheet-lg">
+            <div class="sheet-head">
+                <h3 id="decompiler-title" class="sheet-title">Décompilateur IA</h3>
+                <button type="button" data-action="closeModal" data-id="decompiler-modal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
             </div>
-
-            <div id="decompiler-no-key" class="hidden bg-amber-100 border-2 border-[#1B1A18] rounded-[6px] p-3 text-xs font-semibold">
-                ⚠️ Aucune clé Gemini enregistrée sur cet appareil. Ajoutez-la dans <button onclick="closeModal('decompiler-modal'); openConfigModal();" class="underline">Réglages & Sync</button> (section « Décompilateur IA »).
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div id="drop-zone" onclick="document.getElementById('file-input').click()" class="border-2 border-dashed border-[#1B1A18] bg-white rounded-[6px] p-6 text-center cursor-pointer hover:bg-[#EFEEEC] transition flex flex-col items-center justify-center min-h-[220px] space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                        <i data-lucide="image-plus" class="w-10 h-10 text-[#CC0C33]"></i>
-                        <div>
-                            <p class="font-heading text-lg">Dépose ta capture ici</p>
-                            <p class="text-xs text-slate-600">SMS, WhatsApp, mail, notes manuscrites</p>
-                        </div>
-                        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
-                    </div>
-                    <div id="image-preview-container" class="hidden space-y-2">
-                        <p class="text-xs font-semibold uppercase">Aperçu de la capture :</p>
-                        <img id="image-preview" alt="Aperçu" class="max-h-48 w-full object-contain rounded-[6px] border-2 border-[#1B1A18] bg-white p-2">
-                        <button onclick="analyzeImageWithGemini()" id="btn-analyze" class="retro-btn w-full py-2 text-base flex items-center justify-center gap-2 bg-[#02968A]">
-                            <i data-lucide="wand-2" class="w-4 h-4"></i> Décompiler avec l'IA
+            <div class="sheet-body">
+                <p class="hint m-0">Transforme une capture de conversation client en fiche client + projet.</p>
+                <div id="decompiler-no-key" class="hidden note-ok">
+                    Aucune clé Gemini enregistrée sur cet appareil. Ajoutez-la dans
+                    <button type="button" data-action="closeAndOpenConfig" data-id="decompiler-modal" class="link">Réglages</button> (section « Décompilateur IA »).
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid gap-4 content-start">
+                        <button type="button" id="drop-zone" data-action="clickInput" data-id="file-input" class="w-full grid place-items-center gap-2 min-h-[220px] p-6 text-center bg-[#FBFAF8] border border-dashed border-[#1B1A18] rounded-[2px] cursor-pointer hover:bg-white">
+                            <i data-lucide="image-plus" class="w-10 h-10 text-[#CC0C33]" aria-hidden="true"></i>
+                            <span class="font-semibold text-[17px]">Déposez la capture ici</span>
+                            <span class="hint">SMS, WhatsApp, mail, notes manuscrites</span>
                         </button>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div id="analysis-loading" class="hidden retro-box p-6 text-center space-y-3">
-                        <div class="inline-block animate-spin rounded-full h-7 w-7 border-4 border-[#CC0C33] border-t-transparent"></div>
-                        <p class="font-heading text-base">Extraction du brief par l'IA...</p>
-                    </div>
-                    <div id="analysis-result-container" class="retro-box p-4 space-y-3 hidden bg-white">
-                        <div class="flex flex-wrap gap-2 items-center justify-between border-b-2 border-[#1B1A18] pb-2">
-                            <h4 class="font-heading text-lg text-[#1B1A18]">Résultat</h4>
-                            <div class="flex flex-wrap gap-2">
-                                <button onclick="copyAnalysisToEditor()" class="retro-btn-secondary px-2.5 py-1 text-xs flex items-center gap-1">
-                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Insérer dans le carnet
-                                </button>
-                                <button id="btn-ai-create" onclick="createFromAnalysis()" class="retro-btn px-2.5 py-1 text-xs bg-[#CC0C33] flex items-center gap-1">
-                                    <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Créer client + projet
-                                </button>
-                            </div>
+                        <input type="file" id="file-input" accept="image/*" class="hidden" data-change="handleFileSelect" data-with-event>
+                        <div id="image-preview-container" class="hidden grid gap-2">
+                            <p class="label m-0">Aperçu de la capture</p>
+                            <img id="image-preview" alt="Aperçu de la capture" class="max-h-48 w-full object-contain border border-[#1B1A18]/30 bg-white p-2">
+                            <button type="button" data-action="analyzeImageWithGemini" id="btn-analyze" class="btn btn-primary w-full">
+                                <i data-lucide="wand-2" aria-hidden="true"></i> Décompiler
+                            </button>
                         </div>
-                        <div id="analysis-text-output" class="text-xs space-y-2 max-h-72 overflow-y-auto whitespace-pre-wrap font-sans"></div>
+                    </div>
+                    <div class="grid gap-4 content-start">
+                        <div id="analysis-loading" class="hidden panel pb text-center grid gap-3 justify-items-center">
+                            <span class="spinner" aria-hidden="true"></span>
+                            <p class="m-0 font-semibold" role="status">Extraction du brief…</p>
+                        </div>
+                        <div id="analysis-result-container" class="panel hidden">
+                            <div class="ph flex-wrap">
+                                <h4 class="ph-title">Résultat</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" data-action="copyAnalysisToEditor" class="btn btn-sm"><i data-lucide="copy" aria-hidden="true"></i> Insérer dans le carnet</button>
+                                    <button type="button" id="btn-ai-create" data-action="createFromAnalysis" class="btn btn-sm btn-primary"><i data-lucide="user-plus" aria-hidden="true"></i> Créer client + projet</button>
+                                </div>
+                            </div>
+                            <div id="analysis-text-output" class="pb text-sm max-h-72 overflow-y-auto whitespace-pre-wrap"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL : FICHE PROJET -->
-    <div id="project-detail-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div id="project-detail-scroll" class="retro-box bg-[#EFEEEC] w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-6">
-            <div class="flex items-center justify-between gap-2 border-b-2 border-[#1B1A18] pb-3">
-                <h3 id="modal-project-title" class="font-heading text-2xl text-[#1B1A18]">Fiche projet</h3>
-                <div class="flex items-center gap-2">
-                    <button id="detail-edit-btn" class="retro-btn-secondary px-2.5 py-1 text-sm">Éditer</button>
-                    <button onclick="closeModal('project-detail-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
-                </div>
+    <!-- FENÊTRE : FICHE PROJET -->
+    <div id="project-detail-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-project-title">
+        <div id="project-detail-scroll" class="sheet sheet-lg">
+            <div class="sheet-head">
+                <h3 id="modal-project-title" class="sheet-title">Fiche projet</h3>
+                <button type="button" id="detail-edit-btn" data-action="editProject" class="btn btn-sm"><i data-lucide="pencil" aria-hidden="true"></i> Éditer</button>
+                <button type="button" data-action="closeModal" data-id="project-detail-modal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
             </div>
-            <div id="modal-project-content" class="space-y-6"></div>
+            <div id="modal-project-content" class="sheet-body"></div>
         </div>
     </div>
 
-    <!-- MODAL : SESSION MANUELLE -->
-    <div id="manual-session-modal" class="modal fixed inset-0 z-[60] bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-md p-6 space-y-6">
-            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 id="manual-session-modal-title" class="font-heading text-2xl text-[#1B1A18]">Ajouter / Éditer une session</h3>
-                <button onclick="closeModal('manual-session-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            <form id="manual-session-form" onsubmit="saveManualSession(event)" class="space-y-4">
-                <input type="hidden" id="manual-session-id">
-                <div>
-                    <label for="manual-project-id" class="text-xs font-semibold uppercase">Projet :</label>
-                    <select id="manual-project-id" required class="retro-input w-full text-sm mt-1"></select>
+    <!-- FENÊTRE : SESSION MANUELLE -->
+    <div id="manual-session-modal" class="modal z-60 hidden" role="dialog" aria-modal="true" aria-labelledby="manual-session-modal-title">
+        <div class="sheet sheet-md">
+            <form id="manual-session-form" data-submit="saveManualSession">
+                <div class="sheet-head">
+                    <h3 id="manual-session-modal-title" class="sheet-title">Ajouter une session</h3>
+                    <button type="button" data-action="closeModal" data-id="manual-session-modal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
                 </div>
-                <div>
-                    <label for="manual-date" class="text-xs font-semibold uppercase">Date :</label>
-                    <input type="date" id="manual-date" required class="retro-input w-full text-sm mt-1">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="sheet-body">
+                    <input type="hidden" id="manual-session-id">
                     <div>
-                        <label for="manual-hours" class="text-xs font-semibold uppercase">Durée (heures) :</label>
-                        <input type="number" step="0.25" min="0.25" id="manual-hours" required placeholder="ex : 1.5" class="retro-input w-full text-sm mt-1">
+                        <label for="manual-project-id" class="label">Projet</label>
+                        <select id="manual-project-id" required class="field"></select>
                     </div>
                     <div>
-                        <label for="manual-category" class="text-xs font-semibold uppercase">Catégorie :</label>
-                        <input type="text" id="manual-category" value="Production" list="category-suggestions" class="retro-input w-full text-sm mt-1">
+                        <label for="manual-date" class="label">Date</label>
+                        <input type="date" id="manual-date" required class="field">
                     </div>
-                </div>
-                <div>
-                    <label for="manual-notes" class="text-xs font-semibold uppercase">Notes / descriptif :</label>
-                    <input type="text" id="manual-notes" placeholder="Détails..." class="retro-input w-full text-sm mt-1">
-                </div>
-                <div class="flex justify-end gap-3 pt-4">
-                    <button type="button" onclick="closeModal('manual-session-modal')" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
-                    <button type="submit" class="retro-btn px-4 py-2 text-base bg-[#02968A]">Enregistrer</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL CLIENT -->
-    <div id="client-modal" class="modal fixed inset-0 z-[60] bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-6">
-            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 id="client-modal-title" class="font-heading text-2xl text-[#1B1A18]">Ajouter un client</h3>
-                <button onclick="cancelClientModal()" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            <p id="client-ai-hint" class="hidden text-xs font-semibold bg-[#D1A802]/30 border-2 border-[#1B1A18] rounded-[6px] p-2">✨ Pré-rempli par l'IA : vérifiez puis enregistrez. Le projet s'ouvrira ensuite.</p>
-            <form id="client-form" onsubmit="saveClient(event)" class="space-y-4">
-                <input type="hidden" id="client-id">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="client-firstname" class="text-xs font-semibold uppercase">Prénom :</label>
-                        <input type="text" id="client-firstname" required class="retro-input w-full text-sm mt-1">
-                    </div>
-                    <div>
-                        <label for="client-lastname" class="text-xs font-semibold uppercase">Nom :</label>
-                        <input type="text" id="client-lastname" class="retro-input w-full text-sm mt-1">
-                    </div>
-                </div>
-                <div>
-                    <label for="client-company" class="text-xs font-semibold uppercase">Entreprise :</label>
-                    <input type="text" id="client-company" class="retro-input w-full text-sm mt-1">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="client-email" class="text-xs font-semibold uppercase">Email :</label>
-                        <input type="email" id="client-email" class="retro-input w-full text-sm mt-1">
-                    </div>
-                    <div>
-                        <label for="client-phone" class="text-xs font-semibold uppercase">Téléphone :</label>
-                        <input type="tel" id="client-phone" class="retro-input w-full text-sm mt-1">
-                    </div>
-                </div>
-                <div>
-                    <label for="client-address" class="text-xs font-semibold uppercase">Adresse de facturation :</label>
-                    <textarea id="client-address" rows="2" class="retro-input w-full text-sm mt-1"></textarea>
-                </div>
-                <div>
-                    <label for="client-delivery-address" class="text-xs font-semibold uppercase">Adresse de livraison :</label>
-                    <textarea id="client-delivery-address" rows="2" class="retro-input w-full text-sm mt-1"></textarea>
-                </div>
-                <div class="flex justify-end gap-3 pt-4">
-                    <button type="button" onclick="cancelClientModal()" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
-                    <button type="submit" class="retro-btn px-4 py-2 text-base">Enregistrer</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL PROJET -->
-    <div id="project-modal" class="modal fixed inset-0 z-[60] bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-6">
-            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 id="project-modal-title" class="font-heading text-2xl text-[#1B1A18]">Ajouter un projet</h3>
-                <button onclick="cancelProjectModal()" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            <p id="project-ai-hint" class="hidden text-xs font-semibold bg-[#D1A802]/30 border-2 border-[#1B1A18] rounded-[6px] p-2">✨ Pré-rempli par l'IA : le compte-rendu sera rangé dans le carnet de ce projet.</p>
-            <form id="project-form" onsubmit="saveProject(event)" class="space-y-4">
-                <input type="hidden" id="project-id">
-                <div>
-                    <label for="project-name" class="text-xs font-semibold uppercase">Nom du projet :</label>
-                    <input type="text" id="project-name" required class="retro-input w-full text-sm mt-1">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="project-client-id" class="text-xs font-semibold uppercase">Client lié :</label>
-                        <select id="project-client-id" required class="retro-input w-full text-sm mt-1">
-                            <option value="">-- Sélectionner un client --</option>
-                        </select>
-                        <p id="project-no-client-hint" class="hidden text-[11px] font-semibold text-[#CC0C33] mt-1">Créez d'abord un client dans l'onglet « Clients ».</p>
-                    </div>
-                    <div>
-                        <label for="project-type" class="text-xs font-semibold uppercase">Type :</label>
-                        <select id="project-type" class="retro-input w-full text-sm mt-1"></select>
-                    </div>
-                </div>
-                <p id="project-steps-hint" class="text-[11px] font-semibold text-[#1B1A18]/70 -mt-2">Les étapes types de ce genre de projet seront ajoutées automatiquement (modifiables ensuite).</p>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="project-status" class="text-xs font-semibold uppercase">Statut :</label>
-                        <select id="project-status" class="retro-input w-full text-sm mt-1"></select>
-                    </div>
-                    <div>
-                        <label for="project-deadline" class="text-xs font-semibold uppercase">Deadline :</label>
-                        <input type="date" id="project-deadline" class="retro-input w-full text-sm mt-1">
-                    </div>
-                </div>
-                <div class="space-y-3 bg-[#CEB694] p-3 border-2 border-[#1B1A18] rounded-[6px]">
-                    <p class="text-xs font-bold uppercase">Temps & prix (optionnels)</p>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label for="project-hourly-rate" class="text-[11px] font-semibold uppercase">Taux horaire visé (€/h) :</label>
-                            <input type="number" step="1" min="0" id="project-hourly-rate" class="retro-input w-full text-sm mt-1" value="35">
+                            <label for="manual-hours" class="label">Durée (heures)</label>
+                            <input type="number" step="0.25" min="0.25" id="manual-hours" required inputmode="decimal" placeholder="ex : 1.5" class="field">
                         </div>
                         <div>
-                            <label for="project-price" class="text-[11px] font-semibold uppercase">Prix du forfait (€) :</label>
-                            <input type="number" step="1" min="0" id="project-price" class="retro-input w-full text-sm mt-1" placeholder="si forfait">
+                            <label for="manual-category" class="label">Catégorie</label>
+                            <input type="text" id="manual-category" value="Production" list="category-suggestions" class="field">
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="project-has-budget" onchange="toggleBudgetInput()" class="w-4 h-4 accent-[#CC0C33]">
-                        <label for="project-has-budget" class="text-[11px] font-semibold uppercase cursor-pointer">Définir un budget d'heures</label>
-                    </div>
-                    <div id="budget-container" class="hidden">
-                        <label for="project-hour-budget" class="text-[11px] font-semibold uppercase">Budget d'heures (h) :</label>
-                        <input type="number" step="0.5" min="0.5" id="project-hour-budget" class="retro-input w-full text-sm mt-1" value="10">
-                        <button type="button" onclick="suggestBudgetFromPrice()" class="text-[11px] underline font-semibold mt-1">Calculer depuis le forfait et le taux</button>
+                    <div>
+                        <label for="manual-notes" class="label">Notes / descriptif</label>
+                        <input type="text" id="manual-notes" placeholder="Détails…" class="field">
                     </div>
                 </div>
-                <div>
-                    <label for="project-invoice-url" class="text-xs font-semibold uppercase">Lien devis / facture (Qonto, Revolut…) :</label>
-                    <input type="url" id="project-invoice-url" placeholder="https://..." class="retro-input w-full text-sm mt-1">
-                </div>
-                <div>
-                    <label for="project-description" class="text-xs font-semibold uppercase">Description courte :</label>
-                    <textarea id="project-description" rows="2" class="retro-input w-full text-sm mt-1"></textarea>
-                </div>
-                <div class="flex justify-end gap-3 pt-4">
-                    <button type="button" onclick="cancelProjectModal()" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
-                    <button type="submit" class="retro-btn px-4 py-2 text-base">Enregistrer</button>
+                <div class="sheet-foot">
+                    <button type="button" data-action="closeModal" data-id="manual-session-modal" class="btn">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL : VERSIONS -->
-    <div id="versions-modal" class="modal fixed inset-0 z-[60] bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 space-y-4">
-            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 class="font-heading text-2xl text-[#1B1A18]">Versions enregistrées</h3>
-                <button onclick="closeModal('versions-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            <p class="text-xs text-slate-700">GitHub garde une copie à chaque enregistrement. Restaurer une version remplace les données actuelles (la version actuelle reste elle aussi dans la liste).</p>
-            <div id="versions-list" class="space-y-2 text-sm"></div>
-        </div>
-    </div>
-
-    <!-- MODAL : CONNEXION -->
-    <div id="login-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-sm p-6 space-y-4">
-            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 id="login-title" class="font-heading text-2xl text-[#1B1A18]">Connexion</h3>
-                <button onclick="closeModal('login-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
-                <p id="login-intro" class="text-xs text-slate-700"></p>
-                <div>
-                    <label for="login-id" class="text-[11px] font-semibold uppercase block mb-1">Identifiant :</label>
-                    <input type="text" id="login-id" autocomplete="username" autocapitalize="off" class="retro-input w-full text-sm">
+    <!-- FENÊTRE : CLIENT -->
+    <div id="client-modal" class="modal z-60 hidden" role="dialog" aria-modal="true" aria-labelledby="client-modal-title">
+        <div class="sheet sheet-md">
+            <form id="client-form" data-submit="saveClient">
+                <div class="sheet-head">
+                    <h3 id="client-modal-title" class="sheet-title">Nouveau client</h3>
+                    <button type="button" data-action="cancelClientModal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
                 </div>
-                <div>
-                    <label for="login-password" class="text-[11px] font-semibold uppercase block mb-1">Mot de passe :</label>
-                    <input type="password" id="login-password" autocomplete="current-password" class="retro-input w-full text-sm">
-                </div>
-                <div id="login-confirm-wrap" class="hidden">
-                    <label for="login-confirm" class="text-[11px] font-semibold uppercase block mb-1">Confirmer le mot de passe :</label>
-                    <input type="password" id="login-confirm" autocomplete="new-password" class="retro-input w-full text-sm">
-                </div>
-                <p id="login-msg" class="text-xs font-semibold" aria-live="polite"></p>
-                <div class="flex flex-wrap justify-between items-center gap-3">
-                    <button type="button" id="login-token-link" onclick="closeModal('login-modal'); openConfigModal();" class="text-xs underline font-semibold hover:text-[#CC0C33]">Saisir un jeton</button>
-                    <button type="submit" id="login-submit" class="retro-btn px-4 py-2 text-base bg-[#02968A]">Se connecter</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL : RÉGLAGES -->
-    <div id="config-modal" class="modal fixed inset-0 z-50 bg-[#1B1A18]/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="retro-box bg-[#EFEEEC] w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5">
-            <div class="flex items-center justify-between border-b-2 border-[#1B1A18] pb-3">
-                <h3 class="font-heading text-2xl text-[#1B1A18]">Réglages & synchronisation</h3>
-                <button onclick="closeModal('config-modal')" class="text-[#1B1A18] hover:text-[#CC0C33]" aria-label="Fermer"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-
-            <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
-                <div class="space-y-1">
-                    <p class="font-heading text-lg">1. Synchronisation GitHub</p>
-                    <p class="text-xs text-slate-700">Vos données sont enregistrées dans <code>data.json</code> de votre <strong>dépôt PRIVÉ</strong>. Ces informations restent uniquement sur cet appareil.</p>
-                </div>
-                <div>
-                    <label for="gh-username-input" class="text-[11px] font-semibold uppercase block mb-1">Nom d'utilisateur GitHub :</label>
-                    <input type="text" id="gh-username-input" required autocomplete="username" class="retro-input w-full text-sm" placeholder="ex : mon-pseudo">
-                </div>
-                <div>
-                    <label for="gh-repo-input" class="text-[11px] font-semibold uppercase block mb-1">Nom du dépôt PRIVÉ de données :</label>
-                    <input type="text" id="gh-repo-input" required class="retro-input w-full text-sm" placeholder="ex : phant-studio-data">
-                </div>
-                <div>
-                    <label for="gh-token-input" class="text-[11px] font-semibold uppercase block mb-1">Jeton GitHub (commence par github_pat_) :</label>
-                    <input type="password" id="gh-token-input" required autocomplete="off" class="retro-input w-full text-sm" placeholder="github_pat_...">
-                </div>
-                <button type="button" onclick="openLoginSetup()" class="retro-btn-secondary px-3 py-1.5 text-sm">Activer le login (autre appareil)</button>
-
-                <div class="border-t-2 border-[#1B1A18]/10 pt-4 space-y-3">
-                    <div class="space-y-1">
-                        <p class="font-heading text-lg">2. Décompilateur IA <span class="text-xs font-sans font-semibold">(optionnel)</span></p>
-                        <p class="text-xs text-slate-700">Clé Gemini créée sur aistudio.google.com. Elle reste uniquement dans ce navigateur, jamais dans le code.</p>
+                <div class="sheet-body">
+                    <p id="client-ai-hint" class="hidden note-ok m-0">Pré-rempli par l'IA : vérifiez puis enregistrez. Le projet s'ouvrira ensuite.</p>
+                    <input type="hidden" id="client-id">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="client-firstname" class="label">Prénom *</label>
+                            <input type="text" id="client-firstname" required autocomplete="off" class="field">
+                        </div>
+                        <div>
+                            <label for="client-lastname" class="label">Nom</label>
+                            <input type="text" id="client-lastname" autocomplete="off" class="field">
+                        </div>
                     </div>
                     <div>
-                        <label for="gemini-key-input" class="text-[11px] font-semibold uppercase block mb-1">Clé API Gemini :</label>
-                        <input type="password" id="gemini-key-input" autocomplete="off" class="retro-input w-full text-sm" placeholder="AIza... (laisser vide si inutilisé)">
+                        <label for="client-company" class="label">Entreprise</label>
+                        <input type="text" id="client-company" autocomplete="off" class="field">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="client-email" class="label">Email</label>
+                            <input type="email" id="client-email" autocomplete="off" class="field">
+                        </div>
+                        <div>
+                            <label for="client-phone" class="label">Téléphone</label>
+                            <input type="tel" id="client-phone" autocomplete="off" class="field">
+                        </div>
                     </div>
                     <div>
-                        <label for="gemini-model-input" class="text-[11px] font-semibold uppercase block mb-1">Modèle Gemini :</label>
-                        <input type="text" id="gemini-model-input" class="retro-input w-full text-sm" placeholder="gemini-flash-latest">
+                        <label for="client-address" class="label">Adresse de facturation</label>
+                        <textarea id="client-address" rows="2" class="field"></textarea>
+                    </div>
+                    <div>
+                        <label for="client-delivery-address" class="label">Adresse de livraison</label>
+                        <textarea id="client-delivery-address" rows="2" class="field"></textarea>
                     </div>
                 </div>
-
-                <div class="flex flex-wrap justify-between gap-3 pt-2">
-                    <button type="button" onclick="logout()" class="text-xs underline font-semibold hover:text-[#CC0C33]">Oublier le jeton sur cet appareil</button>
-                    <div class="flex gap-3">
-                        <button type="button" onclick="closeModal('config-modal')" class="retro-btn-secondary px-4 py-2 text-base">Annuler</button>
-                        <button type="submit" class="retro-btn px-4 py-2 text-base bg-[#02968A]">Enregistrer & Sync</button>
-                    </div>
+                <div class="sheet-foot">
+                    <button type="button" data-action="cancelClientModal" class="btn">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
                 </div>
             </form>
+        </div>
+    </div>
 
-            <div class="border-t-2 border-[#1B1A18]/10 pt-4 space-y-3">
-                <p class="font-heading text-lg">3. Sauvegardes</p>
-                <p class="text-xs text-slate-700">Retrouvez une ancienne version (en cas de fausse manip) ou téléchargez une copie complète.</p>
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" onclick="openVersionsModal()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
-                        <i data-lucide="history" class="w-4 h-4"></i> Versions GitHub
-                    </button>
-                    <button type="button" onclick="exportBackupJSON()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
-                        <i data-lucide="save" class="w-4 h-4"></i> Télécharger
-                    </button>
-                    <button type="button" onclick="document.getElementById('backup-input').click()" class="retro-btn-secondary px-3 py-1.5 text-sm flex items-center gap-1.5">
-                        <i data-lucide="upload" class="w-4 h-4"></i> Restaurer un fichier
-                    </button>
-                    <input type="file" id="backup-input" accept="application/json,.json" class="hidden" onchange="importBackupJSON(event)">
+    <!-- FENÊTRE : PROJET -->
+    <div id="project-modal" class="modal z-60 hidden" role="dialog" aria-modal="true" aria-labelledby="project-modal-title">
+        <div class="sheet sheet-md">
+            <form id="project-form" data-submit="saveProject">
+                <div class="sheet-head">
+                    <h3 id="project-modal-title" class="sheet-title">Nouveau projet</h3>
+                    <button type="button" data-action="cancelProjectModal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
                 </div>
+                <div class="sheet-body">
+                    <p id="project-ai-hint" class="hidden note-ok m-0">Pré-rempli par l'IA : le compte-rendu sera rangé dans le carnet de ce projet.</p>
+                    <input type="hidden" id="project-id">
+                    <div>
+                        <label for="project-name" class="label">Nom du projet *</label>
+                        <input type="text" id="project-name" required class="field">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="project-client-id" class="label">Client *</label>
+                            <select id="project-client-id" required class="field">
+                                <option value="">-- Sélectionner un client --</option>
+                            </select>
+                            <p id="project-no-client-hint" class="hidden err text-[13px] mt-1 mb-0">Créez d'abord un client dans l'onglet « Clients ».</p>
+                        </div>
+                        <div>
+                            <label for="project-type" class="label">Type</label>
+                            <select id="project-type" class="field"></select>
+                        </div>
+                    </div>
+                    <p id="project-steps-hint" class="hint -mt-2 mb-0">Les étapes types de ce genre de projet seront ajoutées automatiquement (modifiables ensuite).</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="project-status" class="label">Statut</label>
+                            <select id="project-status" class="field"></select>
+                        </div>
+                        <div>
+                            <label for="project-deadline" class="label">Deadline</label>
+                            <input type="date" id="project-deadline" class="field">
+                        </div>
+                    </div>
+                    <fieldset class="box-kraft grid gap-3 m-0">
+                        <legend class="label px-1">Temps & prix (optionnels)</legend>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="project-hourly-rate" class="label">Taux visé (€/h)</label>
+                                <input type="number" step="1" min="0" id="project-hourly-rate" inputmode="decimal" class="field" value="35">
+                            </div>
+                            <div>
+                                <label for="project-price" class="label">Prix du forfait (€)</label>
+                                <input type="number" step="1" min="0" id="project-price" inputmode="decimal" class="field" placeholder="si forfait">
+                            </div>
+                        </div>
+                        <label class="flex items-center gap-2 font-semibold text-[15px] cursor-pointer">
+                            <input type="checkbox" id="project-has-budget" data-change="toggleBudgetInput" class="check">
+                            Définir un budget d'heures
+                        </label>
+                        <div id="budget-container" class="hidden">
+                            <label for="project-hour-budget" class="label">Budget d'heures (h)</label>
+                            <input type="number" step="0.5" min="0.5" id="project-hour-budget" inputmode="decimal" class="field" value="10">
+                            <button type="button" data-action="suggestBudgetFromPrice" class="link text-[13px]">Calculer depuis le forfait et le taux</button>
+                        </div>
+                    </fieldset>
+                    <div>
+                        <label for="project-invoice-url" class="label">Lien devis / facture (Qonto, Revolut…)</label>
+                        <input type="url" id="project-invoice-url" placeholder="https://…" class="field">
+                    </div>
+                    <div>
+                        <label for="project-description" class="label">Description courte</label>
+                        <textarea id="project-description" rows="2" class="field"></textarea>
+                    </div>
+                </div>
+                <div class="sheet-foot">
+                    <button type="button" data-action="cancelProjectModal" class="btn">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FENÊTRE : VERSIONS -->
+    <div id="versions-modal" class="modal z-60 hidden" role="dialog" aria-modal="true" aria-labelledby="versions-title">
+        <div class="sheet sheet-md">
+            <div class="sheet-head">
+                <h3 id="versions-title" class="sheet-title">Versions enregistrées</h3>
+                <button type="button" data-action="closeModal" data-id="versions-modal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
+            </div>
+            <div class="sheet-body">
+                <p class="hint m-0">GitHub garde une copie à chaque enregistrement. Restaurer une version remplace les données actuelles (la version actuelle reste elle aussi dans la liste).</p>
+                <div id="versions-list" class="panel rows" aria-live="polite"></div>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- FENÊTRE : CONNEXION -->
+    <div id="login-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="login-title">
+        <div class="sheet sheet-sm">
+            <form data-submit="handleLoginSubmit">
+                <div class="sheet-head">
+                    <h3 id="login-title" class="sheet-title">Connexion</h3>
+                    <button type="button" data-action="closeModal" data-id="login-modal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
+                </div>
+                <div class="sheet-body">
+                    <p id="login-intro" class="hint m-0"></p>
+                    <div>
+                        <label for="login-id" class="label">Identifiant</label>
+                        <input type="text" id="login-id" autocomplete="username" autocapitalize="off" class="field">
+                    </div>
+                    <div>
+                        <label for="login-password" class="label">Mot de passe</label>
+                        <input type="password" id="login-password" autocomplete="current-password" class="field">
+                    </div>
+                    <div id="login-confirm-wrap" class="hidden">
+                        <label for="login-confirm" class="label">Confirmer le mot de passe</label>
+                        <input type="password" id="login-confirm" autocomplete="new-password" class="field">
+                    </div>
+                    <p id="login-msg" class="m-0 text-sm font-semibold" aria-live="polite"></p>
+                </div>
+                <div class="sheet-foot">
+                    <button type="button" id="login-token-link" data-action="closeAndOpenConfig" data-id="login-modal" class="link grow">Saisir un jeton</button>
+                    <button type="submit" id="login-submit" class="btn btn-primary">Se connecter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FENÊTRE : RÉGLAGES -->
+    <div id="config-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="config-title">
+        <div class="sheet sheet-md">
+            <form data-submit="handleAuthSubmit">
+                <div class="sheet-head">
+                    <h3 id="config-title" class="sheet-title">Réglages & synchronisation</h3>
+                    <button type="button" data-action="closeModal" data-id="config-modal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
+                </div>
+                <div class="sheet-body">
+                    <div class="grid gap-2">
+                        <h4 class="sheet-section-title">1. Synchronisation GitHub</h4>
+                        <p class="hint m-0">Vos données sont enregistrées dans <code>data.json</code> de votre <strong>dépôt privé</strong>. Ces informations restent uniquement sur cet appareil.</p>
+                    </div>
+                    <div>
+                        <label for="gh-username-input" class="label">Nom d'utilisateur GitHub</label>
+                        <input type="text" id="gh-username-input" required autocomplete="username" autocapitalize="off" class="field" placeholder="ex : mon-pseudo">
+                    </div>
+                    <div>
+                        <label for="gh-repo-input" class="label">Nom du dépôt privé de données</label>
+                        <input type="text" id="gh-repo-input" required autocapitalize="off" class="field" placeholder="ex : phant-studio-data">
+                    </div>
+                    <div>
+                        <label for="gh-token-input" class="label">Jeton GitHub (commence par github_pat_)</label>
+                        <input type="password" id="gh-token-input" required autocomplete="off" class="field" placeholder="github_pat_…">
+                    </div>
+                    <button type="button" data-action="openLoginSetup" class="btn justify-self-start">Activer le login (autre appareil)</button>
+
+                    <div class="sheet-section">
+                        <h4 class="sheet-section-title">2. Décompilateur IA <span class="font-medium normal-case tracking-normal">(optionnel)</span></h4>
+                        <p class="hint m-0">Clé Gemini créée sur aistudio.google.com. Elle reste uniquement dans ce navigateur, jamais dans le code.</p>
+                        <div>
+                            <label for="gemini-key-input" class="label">Clé API Gemini</label>
+                            <input type="password" id="gemini-key-input" autocomplete="off" class="field" placeholder="AIza… (laisser vide si inutilisé)">
+                        </div>
+                        <div>
+                            <label for="gemini-model-input" class="label">Modèle Gemini</label>
+                            <input type="text" id="gemini-model-input" autocapitalize="off" class="field" placeholder="gemini-flash-latest">
+                        </div>
+                    </div>
+
+                    <div class="sheet-section">
+                        <h4 class="sheet-section-title">3. Sauvegardes</h4>
+                        <p class="hint m-0">Retrouvez une ancienne version (en cas de fausse manip) ou téléchargez une copie complète.</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" data-action="openVersionsModal" class="btn btn-sm"><i data-lucide="history" aria-hidden="true"></i> Versions GitHub</button>
+                            <button type="button" data-action="exportBackupJSON" class="btn btn-sm"><i data-lucide="save" aria-hidden="true"></i> Télécharger</button>
+                            <button type="button" data-action="clickInput" data-id="backup-input" class="btn btn-sm"><i data-lucide="upload" aria-hidden="true"></i> Restaurer un fichier</button>
+                            <button type="button" data-action="exportDataCSV" class="btn btn-sm"><i data-lucide="download" aria-hidden="true"></i> Export CSV</button>
+                            <input type="file" id="backup-input" accept="application/json,.json" class="hidden" data-change="importBackupJSON" data-with-event>
+                        </div>
+                    </div>
+                </div>
+                <div class="sheet-foot">
+                    <button type="button" data-action="logout" class="link link-danger grow">Oublier le jeton sur cet appareil</button>
+                    <button type="button" data-action="closeModal" data-id="config-modal" class="btn">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer & synchroniser</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

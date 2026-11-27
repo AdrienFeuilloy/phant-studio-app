@@ -1,11 +1,9 @@
 /* Service worker Phant Studio : permet d'ouvrir l'appli sans réseau.
    - Fichiers de l'appli : réseau d'abord (toujours la dernière version), copie de secours sinon.
-   - Icônes / Tailwind : copie locale d'abord, mise à jour en arrière-plan.
-   - GitHub et Gemini : jamais interceptés. */
-const CACHE = 'phant-studio-v5';
-const APP_FILES = ['./', 'index.html', 'script.js', 'style.css', 'manifest.webmanifest',
-    'fonts/commissioner.woff2', 'fonts/passion-one.woff2'];
-const CDN_HOSTS = ['cdn.tailwindcss.com', 'unpkg.com'];
+   - Tout le reste (GitHub, Gemini) : jamais intercepté. Aucun fichier ne vient d'un autre site. */
+const CACHE = 'phant-studio-v6';
+const APP_FILES = ['./', 'index.html', 'script.js', 'style.css', 'tailwind.css', 'vendor/lucide-0.460.0.min.js',
+    'manifest.webmanifest', 'fonts/commissioner.woff2', 'fonts/passion-one.woff2'];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_FILES)).then(() => self.skipWaiting()));
@@ -32,19 +30,6 @@ self.addEventListener('fetch', (event) => {
                     return res;
                 })
                 .catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('index.html')))
-        );
-        return;
-    }
-
-    if (CDN_HOSTS.includes(url.hostname)) {
-        event.respondWith(
-            caches.open(CACHE).then(cache => cache.match(req).then(cached => {
-                const network = fetch(req).then(res => {
-                    if (res.ok || res.type === 'opaque') cache.put(req, res.clone());
-                    return res;
-                }).catch(() => cached);
-                return cached || network;
-            }))
         );
     }
 });

@@ -1,7 +1,7 @@
 'use strict';
 
 /* =====================================================================
-   PHANT STUDIO — Suivi & Gestion Projets  (v3.0.0)
+   PHANT STUDIO — Suivi & Gestion Projets  (v3.1.0)
    Données : localStorage (cet appareil) + data.json dans un dépôt
    GitHub PRIVÉ (synchronisation entre appareils).
    ===================================================================== */
@@ -152,7 +152,73 @@ function formatHours(totalSecs) {
 function formatEuro(n) { return (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }); }
 function formatEuroRound(n) { return (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }); }
 
-function refreshIcons() { if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons(); }
+// Appelé après chaque rendu : icônes + largeurs des barres (pas d'attribut style, interdit par la CSP)
+function refreshIcons() {
+    if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
+    document.querySelectorAll('[data-pct]').forEach(el => { el.style.width = Math.max(0, Math.min(100, Number(el.dataset.pct) || 0)) + '%'; });
+    document.querySelectorAll('[data-left]').forEach(el => { el.style.left = Math.max(0, Math.min(100, Number(el.dataset.left) || 0)) + '%'; });
+    document.querySelectorAll('[data-bg]').forEach(el => { if (/^#[0-9a-f]{6}$/i.test(el.dataset.bg)) el.style.background = el.dataset.bg; });
+}
+
+/* ---------------------------------------------------------------------
+   ACTIONS : aucun code dans le HTML. Les boutons portent data-action
+   (+ data-id, data-arg, data-arg2) ; seuls les noms listés ici répondent.
+   --------------------------------------------------------------------- */
+const ACTIONS = {
+    switchTab, openConfigModal, exportDataCSV, quickStartTimer, toggleTimerPause, stopTimer, startTimer, pauseTimer,
+    discardTimer, fixForgottenTimer, openSessionsModal, openDecompilerModal, openCurrentNotesProject, formatText, clearNotes,
+    loadQuestionnaire, openProjectModal, exportICS, changeCalendarMonth, openClientModal, closeModal, clearSessionFilters,
+    openManualSessionModal, closeAndOpenConfig, clickInput, analyzeImageWithGemini, copyAnalysisToEditor, createFromAnalysis,
+    editProject, deleteProject, cancelClientModal, cancelProjectModal, suggestBudgetFromPrice, openLoginSetup, openVersionsModal,
+    exportBackupJSON, logout, restoreVersion, openProjectDetailModal, editSession, deleteSession, startTimerForProject,
+    openManualSessionForProject, addStep, moveStep, deleteStep, deleteLink, openNotesForProject, setProjectFilter,
+    editClient, deleteClient,
+    // champs (change / input)
+    onTimerFieldChange, switchNotesTarget, renderProjects, renderClients, renderStats, renderSessions, saveMonthlyGoal,
+    toggleBudgetInput, handleFileSelect, importBackupJSON, toggleStep, renameStep, setStepDate,
+    // formulaires (submit)
+    saveManualSession, saveClient, saveProject, handleLoginSubmit, handleAuthSubmit, addLink
+};
+
+function actionArgs(el) {
+    return ['id', 'arg', 'arg2'].map(k => el.dataset[k]).filter(v => v !== undefined);
+}
+
+function runAction(name, args) {
+    const fn = Object.prototype.hasOwnProperty.call(ACTIONS, name) ? ACTIONS[name] : null;
+    if (!fn) { console.warn('Action inconnue', name); return; }
+    fn(...args);
+}
+
+function setupActions() {
+    document.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-action]');
+        if (!el || el.disabled) return;
+        e.preventDefault();
+        runAction(el.dataset.action, actionArgs(el));
+    });
+    // Garder la sélection dans l'éditeur quand on clique sur la barre d'outils
+    document.addEventListener('mousedown', (e) => { if (e.target.closest('[data-keep-focus]')) e.preventDefault(); });
+    const onField = (attr) => (e) => {
+        const el = e.target.closest(`[data-${attr}]`);
+        if (!el) return;
+        const args = actionArgs(el);
+        if ('withEvent' in el.dataset) args.unshift(e);
+        else if ('withValue' in el.dataset || args.length) args.push(el.type === 'checkbox' ? el.checked : el.value);
+        runAction(el.dataset[attr], args);
+    };
+    document.addEventListener('change', onField('change'));
+    document.addEventListener('input', onField('input'));
+    document.addEventListener('submit', (e) => {
+        const form = e.target.closest('[data-submit]');
+        if (!form) return;
+        runAction(form.dataset.submit, [e, ...actionArgs(form)]);
+    });
+}
+
+function clickInput(id) { const el = document.getElementById(id); if (el) el.click(); }
+function closeAndOpenConfig(modalId) { closeModal(modalId); openConfigModal(); }
+function openCurrentNotesProject() { if (currentNotesTarget !== 'general') openProjectDetailModal(currentNotesTarget); }
 
 function downloadBlob(content, filename, mime) {
     const blob = new Blob([content], { type: mime });
@@ -189,11 +255,13 @@ function typeLabel(t) { return (PROJECT_TYPES[t] || PROJECT_TYPES.autre).label; 
    DÉMARRAGE
    --------------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', () => {
+    setupActions();
     loadLocalData();
     fillStaticSelects();
     updateAllViews();
     switchNotesTarget(currentNotesTarget, { silent: true });
     restoreTimerUI();
+    switchTab(tabFromHash());
     setInterval(refreshTimerDisplay, 1000);
 
     setupEditor();
@@ -427,18 +495,9 @@ async function pushOnce() {
 function updateSyncBadge(status, message) {
     const badge = document.getElementById('sync-status-badge');
     if (!badge) return;
-    const base = 'text-xs font-semibold px-2.5 py-1 rounded-[6px] border-2 border-[#1B1A18] flex items-center gap-1.5 shadow-[1px_1px_0px_#1B1A18] ';
-    const styles = {
-        success: ['bg-emerald-200 text-emerald-900', 'check-circle-2', ''],
-        loading: ['bg-sky-200 text-sky-900', 'refresh-cw', 'animate-spin'],
-        warning: ['bg-amber-200 text-amber-900', 'hard-drive', ''],
-        error: ['bg-rose-200 text-rose-900', 'x-circle', '']
-    };
-    const [colors, icon, extra] = styles[status] || styles.error;
-    badge.className = base + colors;
-    badge.title = status === 'error' ? 'Cliquez sur « Réglages & Sync » pour vérifier vos informations' : '';
-    badge.innerHTML = `<i data-lucide="${icon}" class="w-3.5 h-3.5 ${extra}"></i> ${escapeHtml(message)}`;
-    refreshIcons();
+    badge.className = 'sync sync-' + (['success', 'loading', 'warning', 'error'].includes(status) ? status : 'error');
+    badge.title = status === 'error' ? 'Ouvrez les Réglages pour vérifier vos informations' : '';
+    badge.textContent = message;
 }
 
 /* ---------------------------------------------------------------------
@@ -447,23 +506,23 @@ function updateSyncBadge(status, message) {
 async function openVersionsModal() {
     if (!isConfigured()) { alert('Connectez d\'abord GitHub (section 1).'); return; }
     const list = document.getElementById('versions-list');
-    list.innerHTML = '<p class="text-xs">Chargement...</p>';
+    list.innerHTML = '<div class="pb grid gap-2" aria-label="Chargement"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>';
     openModal('versions-modal');
     try {
         const res = await ghFetch(`${repoUrl()}/commits?path=data.json&per_page=40&nocache=${Date.now()}`);
         if (!res.ok) throw new GitHubError(res.status, ghErrorText(res.status));
         const commits = await res.json();
-        if (!commits.length) { list.innerHTML = '<p class="text-xs">Aucune version pour le moment.</p>'; return; }
+        if (!commits.length) { list.innerHTML = '<p class="empty">Aucune version pour le moment.</p>'; return; }
         list.innerHTML = commits.map((c, i) => {
             const date = new Date(c.commit.author.date).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
             return `
-                <div class="flex items-center justify-between gap-2 bg-white border-2 border-[#1B1A18] rounded-[6px] px-3 py-2">
-                    <span class="font-semibold">${escapeHtml(date)}${i === 0 ? ' <span class="text-[10px] px-1.5 py-0.5 bg-emerald-200 border border-[#1B1A18] rounded">actuelle</span>' : ''}</span>
-                    ${i === 0 ? '' : `<button onclick="restoreVersion('${escapeHtml(c.sha)}', '${escapeHtml(date)}')" class="retro-btn-secondary px-2 py-0.5 text-sm">Restaurer</button>`}
+                <div class="flex items-center justify-between gap-2 px-4 py-2 min-h-[56px] border-t border-dashed border-[#1B1A18]/50 first:border-t-0">
+                    <span class="font-semibold">${escapeHtml(date)}${i === 0 ? ' <span class="st st-cours ml-2">actuelle</span>' : ''}</span>
+                    ${i === 0 ? '' : `<button type="button" data-action="restoreVersion" data-id="${escapeHtml(c.sha)}" data-arg="${escapeHtml(date)}" class="btn btn-sm">Restaurer</button>`}
                 </div>`;
         }).join('');
     } catch (err) {
-        list.innerHTML = `<p class="text-xs text-[#CC0C33] font-semibold">${escapeHtml(err.message)}</p>`;
+        list.innerHTML = `<p class="empty err">${escapeHtml(err.message)}<br><button type="button" data-action="openVersionsModal" class="link">Réessayer</button></p>`;
     }
 }
 
@@ -716,33 +775,87 @@ function exportICS() {
 /* ---------------------------------------------------------------------
    FENÊTRES & NAVIGATION
    --------------------------------------------------------------------- */
-function openModal(id) { document.getElementById(id).classList.remove('hidden'); refreshIcons(); }
+const modalOpeners = [];
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal.classList.contains('hidden')) modalOpeners.push({ id, el: document.activeElement });
+    modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    refreshIcons();
+    const first = modal.querySelector('.sheet-body input:not([type=hidden]):not(.hidden), .sheet-body select, .sheet-body textarea, .sheet-body button, .sheet-head button');
+    if (first && !first.disabled) setTimeout(() => first.focus({ preventScroll: true }), 30);
+}
 function closeModal(id) {
-    document.getElementById(id).classList.add('hidden');
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.add('hidden');
     if (id === 'project-detail-modal') openProjectDetailId = null;
+    if (!document.querySelector('.modal:not(.hidden)')) document.body.classList.remove('overflow-hidden');
+    const i = modalOpeners.map(o => o.id).lastIndexOf(id);
+    if (i !== -1) {
+        const { el } = modalOpeners.splice(i, 1)[0];
+        if (el && document.contains(el) && el.offsetParent !== null) el.focus({ preventScroll: true });
+    }
+}
+
+function topModal() {
+    const open = [...document.querySelectorAll('.modal')].filter(m => !m.classList.contains('hidden')).reverse();
+    return open.sort((a, b) => (parseInt(getComputedStyle(b).zIndex) || 0) - (parseInt(getComputedStyle(a).zIndex) || 0))[0];
 }
 
 function setupKeyboard() {
     document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape') return;
-        const open = [...document.querySelectorAll('.modal')].filter(m => !m.classList.contains('hidden'));
-        if (!open.length) return;
-        const top = open.sort((a, b) => (parseInt(getComputedStyle(b).zIndex) || 0) - (parseInt(getComputedStyle(a).zIndex) || 0))[0];
-        if (top.id === 'client-modal') cancelClientModal();
-        else if (top.id === 'project-modal') cancelProjectModal();
-        else closeModal(top.id);
+        const top = topModal();
+        if (!top) return;
+        if (e.key === 'Escape') {
+            if (top.id === 'client-modal') cancelClientModal();
+            else if (top.id === 'project-modal') cancelProjectModal();
+            else closeModal(top.id);
+            return;
+        }
+        if (e.key !== 'Tab') return;
+        // Garder le clavier dans la fenêtre ouverte
+        const items = [...top.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [contenteditable="true"], summary')]
+            .filter(el => el.offsetParent !== null);
+        if (!items.length) return;
+        const first = items[0], last = items[items.length - 1];
+        if (!top.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+        else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+    // Clic sur le fond sombre = fermer (sauf formulaires, pour ne rien perdre)
+    document.addEventListener('mousedown', (e) => {
+        const m = e.target.classList && e.target.classList.contains('modal') ? e.target : null;
+        if (m && !m.querySelector('form')) closeModal(m.id);
     });
 }
 
+// Onglets : l'adresse garde l'onglet ouvert (#projets…), pour le rechargement et le bouton Retour
+const TAB_SLUGS = { dashboard: '', timer: 'chrono', projects: 'projets', planning: 'planning', clients: 'clients', stats: 'stats' };
+function tabFromHash() {
+    const slug = decodeURIComponent(location.hash.replace(/^#/, ''));
+    return Object.keys(TAB_SLUGS).find(k => TAB_SLUGS[k] === slug) || 'dashboard';
+}
+
 function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.tab-btn').forEach(btn => { btn.classList.remove('retro-btn'); btn.classList.add('retro-btn-secondary'); });
-    document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-    const activeBtn = document.getElementById(`btn-tab-${tabId}`);
-    if (activeBtn) { activeBtn.classList.remove('retro-btn-secondary'); activeBtn.classList.add('retro-btn'); }
-    window.scrollTo({ top: 0 });
+    if (!(tabId in TAB_SLUGS)) tabId = 'dashboard';
+    const panel = document.getElementById(`tab-${tabId}`);
+    const wasHidden = panel.classList.contains('hidden');
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.toggle('hidden', el !== panel));
+    document.querySelectorAll('.tab').forEach(btn => {
+        if (btn.id === `btn-tab-${tabId}`) btn.setAttribute('aria-current', 'page');
+        else btn.removeAttribute('aria-current');
+    });
+    const slug = TAB_SLUGS[tabId];
+    if (tabFromHash() !== tabId) {
+        if (slug) location.hash = slug;
+        else history.pushState(null, '', location.pathname + location.search);
+    }
+    if (wasHidden) window.scrollTo({ top: 0 });
     refreshIcons();
 }
+window.addEventListener('hashchange', () => switchTab(tabFromHash()));
+window.addEventListener('popstate', () => switchTab(tabFromHash()));
 
 function updateAllViews({ skipDetail = false } = {}) {
     populateSelects();
@@ -779,8 +892,8 @@ function populateSelects() {
     filterSel.value = getProject(fVal) ? fVal : '';
 
     const notesSel = document.getElementById('notes-target');
-    notesSel.innerHTML = '<option value="general">📒 Notes générales</option>' + sortedProjects().map(p =>
-        `<option value="${escapeHtml(p.id)}">📁 ${escapeHtml(p.name)} — ${escapeHtml(clientName(getClient(p.clientId)))}</option>`).join('');
+    notesSel.innerHTML = '<option value="general">Notes générales</option>' + sortedProjects().map(p =>
+        `<option value="${escapeHtml(p.id)}">Projet · ${escapeHtml(p.name)} — ${escapeHtml(clientName(getClient(p.clientId)))}</option>`).join('');
     if (currentNotesTarget !== 'general' && !getProject(currentNotesTarget)) switchNotesTarget('general', { silent: true });
     notesSel.value = currentNotesTarget;
 
@@ -855,15 +968,13 @@ function deadlineInfo(p) {
 function deadlineBadge(p) {
     const info = deadlineInfo(p);
     if (!info) return '';
-    const cls = info.level === 'late' ? 'bg-rose-200 text-rose-900' : info.level === 'soon' ? 'bg-amber-200 text-amber-900' : 'bg-[#EFEEEC]';
-    return `<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-[4px] border border-[#1B1A18] font-semibold ${cls}"><i data-lucide="calendar-clock" class="w-3 h-3"></i> ${escapeHtml(info.txt)}</span>`;
+    const cls = info.level === 'late' ? 'tag-late' : info.level === 'soon' ? 'tag-soon' : 'muted';
+    return `<span class="tag ${cls}"><i data-lucide="calendar-clock" class="w-4 h-4" aria-hidden="true"></i> ${escapeHtml(info.txt)}</span>`;
 }
 
+const STATUS_CLASS = { 'Devis envoyé': 'st-devis', 'En cours': 'st-cours', 'En pause': 'st-pause', 'Terminé': 'st-fini' };
 function statusBadge(status) {
-    const colors = {
-        'Devis envoyé': 'bg-sky-200', 'En cours': 'bg-[#CEB694]', 'En pause': 'bg-[#EFEEEC]', 'Terminé': 'bg-emerald-200'
-    };
-    return `<span class="text-xs px-2 py-0.5 rounded-[4px] border border-[#1B1A18] font-bold shrink-0 ${colors[status] || 'bg-[#CEB694]'}">${escapeHtml(status)}</span>`;
+    return `<span class="st ${STATUS_CLASS[status] || 'st-pause'}">${escapeHtml(status)}</span>`;
 }
 
 /* ---------------------------------------------------------------------
@@ -873,41 +984,53 @@ function monthSecs(key) {
     return appData.sessions.filter(s => (s.date || '').startsWith(key) && getProject(s.projectId)).reduce((a, s) => a + (Number(s.durationSeconds) || 0), 0);
 }
 
+// Durée courte pour la colonne « quand » : −2 j, Auj., 6 j
+function daysTag(days) { return days === 0 ? 'Auj.' : days < 0 ? `−${-days} j` : `${days} j`; }
+
 function computeAlerts() {
     const alerts = [];
     const today = todayLocal();
 
     if (timerState.startedAt && timerElapsed() > FORGOTTEN_TIMER_SECS) {
-        alerts.push({ level: 'late', icon: 'alarm-clock', text: `Le chrono tourne depuis ${formatHours(timerElapsed())} : oublié ?`, action: `switchTab('timer')` });
+        alerts.push({ level: 'late', when: '4 h+', title: 'Chrono oublié ?', sub: `Il tourne depuis ${formatHours(timerElapsed())}`, act: 'switchTab', arg: 'timer' });
     }
 
     appData.projects.forEach(p => {
         if (p.status === 'Terminé') return;
-        const open = `openProjectDetailModal('${escapeHtml(p.id)}')`;
         const info = deadlineInfo(p);
         if (info && info.level !== 'normal') {
-            alerts.push({ level: info.level, icon: 'calendar-clock', text: `${p.name} — ${info.txt}`, action: open, sort: info.days });
+            alerts.push({ level: info.level, kind: 'deadline', pid: p.id, when: daysTag(info.days), title: info.days < 0 ? 'Deadline dépassée' : info.days === 0 ? 'Deadline aujourd’hui' : 'Deadline proche', sub: `${p.name} · ${formatDateShort(p.deadline)}`, act: 'openProjectDetailModal', id: p.id, sort: info.days });
         }
         const pct = budgetPct(p);
         if (pct !== null && pct >= 80) {
-            alerts.push({
-                level: pct > 100 ? 'late' : 'soon', icon: 'hourglass',
-                text: `${p.name} — budget d'heures ${pct > 100 ? 'dépassé' : 'presque atteint'} (${pct} %)`, action: open, sort: 100 - pct
-            });
+            alerts.push({ level: pct > 100 ? 'late' : 'soon', when: `${pct} %`, title: pct > 100 ? 'Budget d’heures dépassé' : 'Budget d’heures presque atteint', sub: p.name, act: 'openProjectDetailModal', id: p.id, sort: 100 - pct });
         }
         const late = lateSteps(p);
         if (late.length) {
-            alerts.push({ level: 'soon', icon: 'list-checks', text: `${p.name} — ${late.length} étape(s) en retard (« ${late[0].label} »)`, action: open, sort: 5 });
+            alerts.push({ level: 'soon', when: daysTag(daysBetween(today, late[0].date)), title: late.length > 1 ? `${late.length} étapes en retard` : 'Étape en retard', sub: `${p.name} · « ${late[0].label} »`, act: 'openProjectDetailModal', id: p.id, sort: 5 });
         }
         if (p.status === 'Devis envoyé') {
             const since = (p.statusChangedAt || projectCreatedAt(p) || '').slice(0, 10);
-            if (since && daysBetween(since, today) >= QUOTE_FOLLOWUP_DAYS) {
-                alerts.push({ level: 'info', icon: 'mail-question', text: `${p.name} — devis envoyé il y a ${daysBetween(since, today)} j : relancer ?`, action: open, sort: 50 });
+            const n = since ? daysBetween(since, today) : 0;
+            if (since && n >= QUOTE_FOLLOWUP_DAYS) {
+                alerts.push({ level: 'info', when: 'Auj.', title: 'Relancer le devis', sub: `${p.name} · envoyé il y a ${n} j`, act: 'openProjectDetailModal', id: p.id, sort: 50 });
             }
         }
     });
     const rank = { late: 0, soon: 1, info: 2 };
     return alerts.sort((a, b) => rank[a.level] - rank[b.level] || (a.sort ?? 0) - (b.sort ?? 0));
+}
+
+function actionAttrs(o) {
+    return `data-action="${escapeHtml(o.act)}"${o.id !== undefined ? ` data-id="${escapeHtml(o.id)}"` : ''}${o.arg !== undefined ? ` data-arg="${escapeHtml(o.arg)}"` : ''}`;
+}
+
+function alertRowHtml(a) {
+    return `
+        <button type="button" class="row" ${actionAttrs(a)}>
+            <span class="when ${a.level === 'late' ? 'late' : ''}">${escapeHtml(a.when)}</span>
+            <span class="what"><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.sub)}</span></span>
+        </button>`;
 }
 
 function renderDashboard() {
@@ -920,65 +1043,64 @@ function renderDashboard() {
         totalSecs += secs;
         totalValue += (secs / 3600) * (Number(p.hourlyRate) || 0);
     });
-
-    const thisMonth = todayLocal().slice(0, 7);
-    const mSecs = monthSecs(thisMonth);
-    document.getElementById('dash-month-hours').innerText = formatHours(mSecs);
-    const goal = Number(appData.settings.monthlyGoalHours) || 0;
-    document.getElementById('dash-month-goal').innerHTML = goal ? (() => {
-        const pct = Math.round((mSecs / 3600 / goal) * 100);
-        return `<div class="w-full bg-white border border-[#1B1A18] rounded-full h-2 overflow-hidden"><div class="bg-[#02968A] h-2" style="width:${Math.min(pct, 100)}%"></div></div>
-                <p class="text-[11px] font-semibold">${pct} % de l'objectif (${goal} h)</p>`;
-    })() : `<button onclick="switchTab('stats')" class="text-[11px] underline font-semibold">Fixer un objectif mensuel</button>`;
-
+    // Totaux « depuis le début » : affichés dans Stats
     document.getElementById('dash-total-hours').innerText = formatHours(totalSecs);
     document.getElementById('dash-total-revenue').innerText = formatEuro(totalValue);
+
+    // Le mois en cours
+    const thisMonth = todayLocal().slice(0, 7);
+    const mSecs = monthSecs(thisMonth);
+    const monthName = new Date().toLocaleDateString('fr-FR', { month: 'long' });
+    document.getElementById('dash-month-title').innerText = monthName;
+    document.getElementById('dash-month-hours').innerText = formatHours(mSecs);
+    const goal = Number(appData.settings.monthlyGoalHours) || 0;
+    const pct = goal ? Math.round((mSecs / 3600 / goal) * 100) : 0;
+    document.getElementById('dash-month-goal-label').innerText = goal ? `objectif ${goal} h` : '';
+    document.getElementById('dash-month-pct').innerText = goal ? `soit ${pct} %` : '';
+    const on = Math.min(20, Math.floor(pct / 5));
+    document.getElementById('dash-month-goal').innerHTML = goal ? `
+        <div class="ruler ${pct > 100 ? 'over' : ''}" role="img" aria-label="${pct} % de l'objectif de ${goal} heures">${Array.from({ length: 20 }, (_, i) => `<i class="${i < on ? 'on' : ''}"></i>`).join('')}</div>
+        <div class="ruler-scale" aria-hidden="true"><span>0 h</span><span>${Math.round(goal / 2)} h</span><span>${goal} h</span></div>`
+        : `<button type="button" data-action="switchTab" data-arg="stats" class="link">Fixer un objectif mensuel</button>`;
     document.getElementById('dash-active-projects').innerText = appData.projects.filter(p => p.status === 'En cours').length;
     document.getElementById('dash-total-clients').innerText = appData.clients.length;
 
-    // Alertes
+    // À surveiller : alertes + échéances des 14 prochains jours, dans un seul bloc
     const alerts = computeAlerts();
-    const colors = { late: 'bg-rose-100 border-rose-900', soon: 'bg-amber-100 border-amber-900', info: 'bg-sky-100 border-sky-900' };
-    document.getElementById('dash-alerts').innerHTML = alerts.length ? alerts.map(a => `
-        <button onclick="${a.action}" class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-[6px] border-2 ${colors[a.level]} text-sm font-semibold hover:translate-x-0.5 transition">
-            <i data-lucide="${a.icon}" class="w-4 h-4 shrink-0"></i> <span>${escapeHtml(a.text)}</span>
-        </button>`).join('')
-        : '<p class="text-sm text-[#1B1A18]/60">Rien à signaler ✨</p>';
+    const today = todayLocal();
+    const limit = addDaysIso(today, 14);
+    const flagged = new Set(alerts.filter(a => a.kind === 'deadline').map(a => a.pid));
+    const upcoming = allEvents().filter(e => !e.done && e.date >= today && e.date <= limit && e.project.status !== 'Terminé'
+        && !(e.kind === 'deadline' && flagged.has(e.project.id))).slice(0, 6);
+    document.getElementById('dash-alert-count').innerText = alerts.length || '';
+    document.getElementById('dash-alerts').innerHTML =
+        (alerts.length ? alerts.map(alertRowHtml).join('') : '<p class="empty"><strong>Rien à signaler.</strong>Pas de retard, pas de devis à relancer.</p>') +
+        (upcoming.length ? '<div class="row-sub">À venir</div>' + upcoming.map(e => alertRowHtml({
+            level: 'info', when: daysTag(daysBetween(today, e.date)),
+            title: e.kind === 'deadline' ? 'Deadline' : e.label,
+            sub: `${e.project.name} · ${formatDateShort(e.date)}`, act: 'openProjectDetailModal', id: e.project.id
+        })).join('') : '');
 
     // Projets récents
     const dashList = document.getElementById('dash-projects-list');
     if (appData.projects.length === 0) {
-        dashList.innerHTML = '<p class="text-xs text-[#1B1A18]/60 py-4 text-center">Aucun projet enregistré. Commencez par créer un client, puis un projet.</p>';
+        dashList.innerHTML = `<div class="empty grid gap-3"><p class="m-0"><strong>Aucun projet pour l’instant.</strong>Créez d’abord un client, puis son projet.</p>
+            <div class="flex flex-wrap gap-2"><button type="button" data-action="openClientModal" class="btn btn-sm">Nouveau client</button><button type="button" data-action="openProjectModal" class="btn btn-sm btn-primary">Nouveau projet</button></div></div>`;
     } else {
         dashList.innerHTML = [...appData.projects]
             .sort((a, b) => projectLastActivity(b).localeCompare(projectLastActivity(a)))
             .slice(0, 4).map(p => {
                 const { total, done } = stepsProgress(p);
                 const ns = nextStep(p);
+                const sub = [clientName(getClient(p.clientId)), total ? `${done}/${total} étapes${ns ? ` · prochaine : ${ns.label}` : ''}` : ''].filter(Boolean).join(' · ');
                 return `
-                <div onclick="openProjectDetailModal('${escapeHtml(p.id)}')" class="p-4 rounded-[6px] bg-white border-2 border-[#1B1A18] cursor-pointer hover:bg-[#EFEEEC] transition space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                    <div class="flex items-center justify-between gap-2">
-                        <div>
-                            <h4 class="font-heading text-lg text-[#1B1A18]">${escapeHtml(p.name)}</h4>
-                            <p class="text-xs font-semibold text-[#1B1A18]/70">${escapeHtml(clientName(getClient(p.clientId)))} · ${escapeHtml(typeLabel(p.type))}</p>
-                        </div>
-                        ${statusBadge(p.status)}
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                        <span>⏱ ${formatHours(projectSecs(p.id))}</span>
-                        ${total ? `<span>· ${done}/${total} étapes${ns ? ` — prochaine : ${escapeHtml(ns.label)}` : ' ✓'}</span>` : ''}
-                        ${deadlineBadge(p)}
-                    </div>
-                </div>`;
+                <button type="button" class="row row-nowhen" data-action="openProjectDetailModal" data-id="${escapeHtml(p.id)}">
+                    <span class="what"><b>${escapeHtml(p.name)}</b><span>${escapeHtml(sub)}</span></span>
+                    <span class="row-end flex items-center gap-4">${statusBadge(p.status)}<span class="hrs">${formatHours(projectSecs(p.id))}</span></span>
+                </button>`;
             }).join('');
     }
-
-    // Prochaines échéances
-    const today = todayLocal();
-    const limit = addDaysIso(today, 14);
-    const upcoming = allEvents().filter(e => !e.done && e.date >= today && e.date <= limit && e.project.status !== 'Terminé').slice(0, 6);
-    document.getElementById('dash-upcoming').innerHTML = upcoming.length ? upcoming.map(eventLineHtml).join('')
-        : '<p class="text-[#1B1A18]/60 text-xs">Rien dans les 14 prochains jours.</p>';
+    refreshTimerDisplay();
 }
 
 /* ---------------------------------------------------------------------
@@ -996,15 +1118,17 @@ function allEvents() {
 }
 
 function eventLineHtml(e) {
-    const dot = e.kind === 'deadline' ? 'bg-[#CC0C33]' : 'bg-[#02968A]';
-    return `
-        <button onclick="openProjectDetailModal('${escapeHtml(e.project.id)}')" class="w-full text-left flex items-start gap-2 hover:underline">
-            <span class="mt-1.5 w-2.5 h-2.5 rounded-sm border border-[#1B1A18] shrink-0 ${dot}"></span>
-            <span><strong>${escapeHtml(formatDateShort(e.date))}</strong> — ${e.kind === 'deadline' ? 'Deadline' : escapeHtml(e.label)} · <em>${escapeHtml(e.project.name)}</em></span>
-        </button>`;
+    const today = todayLocal();
+    const days = daysBetween(today, e.date);
+    return alertRowHtml({
+        level: !e.done && days < 0 ? 'late' : 'info', when: daysTag(days),
+        title: e.kind === 'deadline' ? 'Deadline' : e.label,
+        sub: `${e.project.name} · ${formatDateShort(e.date)}`, act: 'openProjectDetailModal', id: e.project.id
+    });
 }
 
 function changeCalendarMonth(delta) {
+    delta = Number(delta) || 0;
     calCursor = delta === 0 ? firstOfMonth(new Date()) : new Date(calCursor.getFullYear(), calCursor.getMonth() + delta, 1);
     renderPlanning();
     refreshIcons();
@@ -1025,7 +1149,7 @@ function renderPlanning() {
     const today = todayLocal();
     const month = calCursor.getMonth();
 
-    let html = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => `<div class="text-center font-bold uppercase text-[10px] py-1">${d}</div>`).join('');
+    let html = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => `<div class="cal-dow">${d}</div>`).join('');
     const cur = new Date(start);
     for (let i = 0; i < 42; i++) {
         const iso = isoLocal(cur);
@@ -1033,14 +1157,14 @@ function renderPlanning() {
         if (i >= 35 && !inMonth) break;
         const evs = byDate[iso] || [];
         const chips = evs.slice(0, 3).map(e => {
-            const cls = e.kind === 'deadline' ? 'bg-[#CC0C33] text-white' : e.done ? 'bg-[#EFEEEC] line-through text-[#1B1A18]/60' : 'bg-[#02968A] text-white';
-            const label = e.kind === 'deadline' ? `⚑ ${e.project.name}` : `${e.label} · ${e.project.name}`;
-            return `<button onclick="openProjectDetailModal('${escapeHtml(e.project.id)}')" title="${escapeHtml(label)}" class="block w-full truncate text-left text-[10px] leading-tight px-1 py-0.5 rounded-sm border border-[#1B1A18] ${cls}">${escapeHtml(label)}</button>`;
+            const cls = e.kind === 'deadline' ? 'dl' : e.done ? 'done' : 'step';
+            const label = e.kind === 'deadline' ? `Deadline · ${e.project.name}` : `${e.label} · ${e.project.name}`;
+            return `<button type="button" data-action="openProjectDetailModal" data-id="${escapeHtml(e.project.id)}" title="${escapeHtml(label)}" class="cal-ev ${cls}">${escapeHtml(label)}</button>`;
         }).join('');
-        const more = evs.length > 3 ? `<span class="text-[10px] font-semibold">+${evs.length - 3}</span>` : '';
+        const more = evs.length > 3 ? `<span class="text-[11px] font-semibold">+${evs.length - 3}</span>` : '';
         html += `
-            <div class="min-h-[70px] sm:min-h-[90px] p-1 rounded-[4px] border ${iso === today ? 'border-2 border-[#CC0C33] bg-white' : 'border-[#1B1A18]/30 ' + (inMonth ? 'bg-white' : 'bg-[#EFEEEC]/50 text-[#1B1A18]/40')} space-y-0.5 overflow-hidden">
-                <div class="text-[11px] font-bold">${cur.getDate()}</div>
+            <div class="cal-day ${inMonth ? '' : 'out'} ${iso === today ? 'today' : ''}"${iso === today ? ' aria-current="date"' : ''}>
+                <span class="cal-num">${cur.getDate()}</span>
                 ${chips}${more}
             </div>`;
         cur.setDate(cur.getDate() + 1);
@@ -1051,8 +1175,8 @@ function renderPlanning() {
     const upcoming = events.filter(e => !e.done && e.date >= today && e.date <= limit);
     const late = events.filter(e => !e.done && e.date < today && e.project.status !== 'Terminé');
     document.getElementById('planning-upcoming').innerHTML =
-        (late.length ? `<p class="text-xs font-bold text-[#CC0C33] uppercase">En retard</p>${late.map(eventLineHtml).join('')}<hr class="border-[#1B1A18]/20">` : '') +
-        (upcoming.length ? upcoming.map(eventLineHtml).join('') : '<p class="text-xs text-[#1B1A18]/60">Rien de prévu. Ajoutez des dates aux étapes depuis la fiche d\'un projet.</p>');
+        (late.length ? `<div class="row-sub border-t-0">En retard</div>${late.map(eventLineHtml).join('')}<div class="row-sub">À venir</div>` : '') +
+        (upcoming.length ? upcoming.map(eventLineHtml).join('') : '<p class="empty"><strong>Rien de prévu.</strong>Ajoutez des dates aux étapes depuis la fiche d’un projet.</p>');
 }
 
 /* ---------------------------------------------------------------------
@@ -1100,18 +1224,17 @@ function renderStats() {
     const max = Math.max(goal, ...hours, 1);
     monthsEl.innerHTML = keys.map((k, i) => {
         const h = hours[i];
-        const pct = (h / max) * 100;
         const reached = goal && h >= goal;
         return `
-            <div class="grid grid-cols-[60px_1fr_60px] items-center gap-2 text-xs" title="${escapeHtml(monthLabel(k))} : ${formatHours(h * 3600)}">
+            <div class="grid grid-cols-[64px_1fr_64px] items-center gap-3 text-sm" title="${escapeHtml(monthLabel(k))} : ${formatHours(h * 3600)}">
                 <span class="font-semibold capitalize">${escapeHtml(monthLabel(k))}</span>
-                <div class="relative h-5 bg-white border border-[#1B1A18] rounded-[3px]">
-                    <div class="h-full ${reached ? 'bg-[#02968A]' : 'bg-[#CC0C33]'} rounded-[2px]" style="width:${pct}%"></div>
-                    ${goal ? `<div class="absolute top-[-3px] bottom-[-3px] w-0.5 bg-[#1B1A18]" style="left:${(goal / max) * 100}%" title="Objectif ${goal} h"></div>` : ''}
+                <div class="bar h-[18px]">
+                    <div class="fill ${reached ? '' : 'red'}" data-pct="${(h / max) * 100}"></div>
+                    ${goal ? `<div class="bar-goal" data-left="${(goal / max) * 100}" title="Objectif ${goal} h"></div>` : ''}
                 </div>
-                <span class="font-bold text-right">${formatHours(h * 3600)}</span>
+                <span class="num text-right text-[17px]">${formatHours(h * 3600)}</span>
             </div>`;
-    }).join('') + (goal ? `<p class="text-[11px] font-semibold pt-2">Trait noir = objectif de ${goal} h · barre verte = objectif atteint</p>` : '');
+    }).join('') + (goal ? `<p class="hint m-0 pt-2">Trait noir : objectif de ${goal} h · barre verte : objectif atteint</p>` : `<p class="hint m-0 pt-2">Fixez un objectif mensuel en haut de la page pour le voir ici.</p>`);
 
     // Catégories
     const period = document.getElementById('stats-period').value;
@@ -1129,35 +1252,33 @@ function renderStats() {
     document.getElementById('stats-categories').innerHTML = catList.length ? catList.map((c, i) => {
         const pct = total ? Math.round((c.secs / total) * 100) : 0;
         return `
-            <div class="space-y-0.5">
-                <div class="flex justify-between text-xs font-semibold"><span>${escapeHtml(c.name)}</span><span>${formatHours(c.secs)} · ${pct} %</span></div>
-                <div class="h-3 bg-white border border-[#1B1A18] rounded-[3px]"><div class="h-full rounded-[2px]" style="width:${pct}%;background:${palette[i % palette.length]}"></div></div>
+            <div class="grid gap-1">
+                <div class="flex justify-between gap-3 text-sm font-semibold"><span>${escapeHtml(c.name)}</span><span class="whitespace-nowrap">${formatHours(c.secs)} · ${pct} %</span></div>
+                <div class="bar"><div class="fill" data-pct="${pct}" data-bg="${palette[i % palette.length]}"></div></div>
             </div>`;
-    }).join('') + `<p class="text-xs font-bold pt-2">Total : ${formatHours(total)}</p>`
-        : '<p class="text-xs text-[#1B1A18]/60">Aucune session sur cette période.</p>';
+    }).join('') + `<p class="m-0 pt-2 font-semibold">Total : <span class="num text-[18px]">${formatHours(total)}</span></p>`
+        : '<p class="empty p-0">Aucune session sur cette période.</p>';
 
     // Forfaits : taux réel
     const forfaits = appData.projects.filter(p => Number(p.price) > 0);
     document.getElementById('stats-forfaits').innerHTML = forfaits.length ? `
-        <table class="w-full text-xs">
-            <tr class="text-left border-b-2 border-[#1B1A18]">
-                <th class="py-1 pr-2">Projet</th><th class="py-1 pr-2">Temps</th><th class="py-1 pr-2">Forfait</th><th class="py-1 pr-2">Taux réel</th><th class="py-1">Visé</th>
-            </tr>
+        <table class="table">
+            <thead><tr><th>Projet</th><th>Temps</th><th>Forfait</th><th>Taux réel</th><th>Visé</th></tr></thead>
             ${forfaits.map(p => {
                 const h = projectSecs(p.id) / 3600;
                 const real = h > 0 ? p.price / h : null;
                 const target = Number(p.hourlyRate) || 0;
-                const cls = real === null ? '' : real >= target ? 'text-[#02968A]' : 'text-[#CC0C33]';
-                return `<tr class="border-b border-[#1B1A18]/15 cursor-pointer hover:bg-white" onclick="openProjectDetailModal('${escapeHtml(p.id)}')">
-                    <td class="py-1.5 pr-2 font-semibold">${escapeHtml(p.name)}</td>
-                    <td class="py-1.5 pr-2">${formatHours(h * 3600)}</td>
-                    <td class="py-1.5 pr-2">${formatEuroRound(p.price)}</td>
-                    <td class="py-1.5 pr-2 font-bold ${cls}">${real === null ? '—' : formatEuroRound(real) + '/h'}</td>
-                    <td class="py-1.5">${target ? formatEuroRound(target) + '/h' : '—'}</td>
+                const cls = real === null ? '' : real >= target ? 'text-[#01675F]' : 'text-[#8E0824]';
+                return `<tr>
+                    <td><button type="button" class="link text-left" data-action="openProjectDetailModal" data-id="${escapeHtml(p.id)}">${escapeHtml(p.name)}</button></td>
+                    <td class="whitespace-nowrap">${formatHours(h * 3600)}</td>
+                    <td class="whitespace-nowrap">${formatEuroRound(p.price)}</td>
+                    <td class="whitespace-nowrap font-bold ${cls}">${real === null ? '—' : formatEuroRound(real) + '/h'}${real === null ? '' : real >= target ? ' ✓' : ' ↓'}</td>
+                    <td class="whitespace-nowrap">${target ? formatEuroRound(target) + '/h' : '—'}</td>
                 </tr>`;
             }).join('')}
         </table>`
-        : '<p class="text-xs text-[#1B1A18]/60">Aucun projet avec un prix de forfait pour l\'instant.</p>';
+        : '<p class="empty p-0">Aucun projet avec un prix de forfait pour l’instant.</p>';
 }
 
 /* ---------------------------------------------------------------------
@@ -1186,7 +1307,6 @@ function restoreTimerUI() {
     document.getElementById('timer-notes').value = timerState.notes;
     if (timerState.projectId && getProject(timerState.projectId)) document.getElementById('timer-project-select').value = timerState.projectId;
     refreshTimerDisplay();
-    if (timerElapsed() > 0) switchTab('timer');
 }
 
 function onTimerFieldChange() {
@@ -1214,13 +1334,38 @@ function refreshTimerDisplay() {
     document.getElementById('timer-project-select').disabled = started;
     document.getElementById('timer-forgot-banner').classList.toggle('hidden', !(running && total > FORGOTTEN_TIMER_SECS));
 
+    // Pastille de l'en-tête (h:mm, la mire tourne tant que le chrono tourne)
     const chip = document.getElementById('header-timer-chip');
     chip.classList.toggle('hidden', !started);
-    chip.classList.toggle('flex', started);
-    document.getElementById('header-timer-text').innerText = (running ? '' : '⏸ ') + txt;
+    chip.classList.toggle('is-running', running);
+    chip.classList.toggle('is-paused', started && !running);
+    document.getElementById('header-timer-text').innerText = `${Math.floor(total / 3600)}:${mins}${running ? '' : ' · pause'}`;
 
-    document.title = running ? `⏱ ${txt} — Phant Studio` : 'Phant Studio — Suivi & Gestion Projets';
+    // Bloc chrono du tableau de bord
+    document.getElementById('dash-chrono-running').classList.toggle('hidden', !started);
+    document.getElementById('dash-chrono-idle').classList.toggle('hidden', started);
+    if (started) {
+        const p = getProject(timerState.projectId);
+        const c = p ? getClient(p.clientId) : null;
+        document.getElementById('dash-timer-display').innerText = txt;
+        document.getElementById('dash-timer-project').innerText = p ? p.name : 'Projet supprimé';
+        document.getElementById('dash-timer-client').innerText = p ? [clientName(c), c && c.company, typeLabel(p.type)].filter(Boolean).join(' · ') : '';
+        const pause = document.getElementById('dash-btn-pause');
+        pause.querySelector('span').innerText = running ? 'Pause' : 'Reprendre';
+        const slug = [
+            running ? `Démarré à ${new Date(timerState.startedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : 'En pause',
+            timerState.category || 'Production',
+            timerState.notes
+        ].filter(Boolean);
+        const slugEl = document.getElementById('dash-timer-slug');
+        const slugHtml = slug.map(t => `<span>${escapeHtml(t)}</span>`).join('');
+        if (slugEl.innerHTML !== slugHtml) slugEl.innerHTML = slugHtml;
+    }
+
+    document.title = running ? `${txt} — Phant Studio` : 'Phant Studio — Suivi & Gestion Projets';
 }
+
+function toggleTimerPause() { if (timerState.startedAt) pauseTimer(); else startTimer(); }
 
 function startTimer() {
     const projId = document.getElementById('timer-project-select').value;
@@ -1294,7 +1439,6 @@ function resetTimerState() {
 
 function quickStartTimer() {
     const projId = document.getElementById('quick-project-select').value;
-    switchTab('timer');
     if (timerElapsed() > 0) { alert('Un chrono est déjà en cours : enregistrez-le ou annulez-le avant d\'en lancer un autre.'); return; }
     if (!projId) { alert('Choisissez d\'abord un projet dans la liste.'); return; }
     document.getElementById('timer-project-select').value = projId;
@@ -1390,11 +1534,11 @@ function openDecompilerModal() {
 
 function setupDropZone() {
     const dropZone = document.getElementById('drop-zone');
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-[#CEB694]/20'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-[#CEB694]/20'));
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-[#CEB694]/40'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-[#CEB694]/40'));
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropZone.classList.remove('bg-[#CEB694]/20');
+        dropZone.classList.remove('bg-[#CEB694]/40');
         if (e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
     });
 }
@@ -1569,21 +1713,22 @@ function renderSessions() {
         ? `${list.length} session(s) · ${formatHours(sumSecs(list))} au total` : '';
 
     if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-[#1B1A18]/60">${appData.sessions.length ? 'Aucune session pour ces filtres.' : 'Aucune session enregistrée.'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">${appData.sessions.length ? 'Aucune session pour ces filtres.' : 'Aucune session enregistrée. Lancez le chrono ou ajoutez une session manuelle.'}</td></tr>`;
         return;
     }
     tbody.innerHTML = list.map(s => {
         const p = getProject(s.projectId);
         return `
-            <tr class="hover:bg-[#EFEEEC] transition border-b border-[#1B1A18]/20">
-                <td class="py-3 px-4 text-xs font-semibold whitespace-nowrap">${escapeHtml(formatDateFr(s.date))}</td>
-                <td class="py-3 px-4 font-bold">${p ? `<button class="hover:underline text-left" onclick="openProjectDetailModal('${escapeHtml(p.id)}')">${escapeHtml(p.name)}</button>` : '<span class="text-[#CC0C33]">Projet supprimé</span>'}</td>
-                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded-[4px] bg-[#CEB694] border border-[#1B1A18] text-xs font-semibold">${escapeHtml(s.category)}</span></td>
-                <td class="py-3 px-4 font-extrabold text-[#CC0C33] whitespace-nowrap">${formatHours(Number(s.durationSeconds) || 0)}</td>
-                <td class="py-3 px-4 text-xs">${escapeHtml(s.notes || '')}</td>
-                <td class="py-3 px-4 text-right whitespace-nowrap space-x-2">
-                    <button onclick="editSession('${escapeHtml(s.id)}')" class="text-xs underline font-bold hover:text-[#CC0C33]">Éditer</button>
-                    <button onclick="deleteSession('${escapeHtml(s.id)}')" class="text-xs text-red-600 underline font-bold">Supprimer</button>
+            <tr>
+                <td class="whitespace-nowrap font-semibold">${escapeHtml(formatDateFr(s.date))}</td>
+                <td class="t-num text-right sm:hidden">${formatHours(Number(s.durationSeconds) || 0)}</td>
+                <td class="t-wide">${p ? `<button type="button" class="link text-left py-0" data-action="openProjectDetailModal" data-id="${escapeHtml(p.id)}">${escapeHtml(p.name)}</button>` : '<span class="err">Projet supprimé</span>'}</td>
+                <td class="t-wide muted">${escapeHtml(s.category)}</td>
+                <td class="t-num hidden sm:table-cell">${formatHours(Number(s.durationSeconds) || 0)}</td>
+                <td class="t-wide">${escapeHtml(s.notes || '')}</td>
+                <td class="t-actions text-right whitespace-nowrap">
+                    <button type="button" data-action="editSession" data-id="${escapeHtml(s.id)}" class="link">Éditer</button>
+                    <button type="button" data-action="deleteSession" data-id="${escapeHtml(s.id)}" class="link link-danger ml-3">Supprimer</button>
                 </td>
             </tr>`;
     }).join('');
@@ -1675,117 +1820,123 @@ function renderProjectDetail(projectId) {
     const invoice = safeUrl(p.invoiceUrl);
 
     document.getElementById('modal-project-title').innerText = p.name;
-    document.getElementById('detail-edit-btn').onclick = () => editProject(p.id);
+    document.getElementById('detail-edit-btn').dataset.id = p.id;
 
     const notesText = (() => { const d = document.createElement('div'); d.innerHTML = p.notes || ''; return d.innerText.trim(); })();
 
-    const stepsHtml = p.steps.length ? p.steps.map(s => {
+    const stepsHtml = p.steps.length ? p.steps.map((s, i) => {
         const sid = escapeHtml(s.id);
         const late = !s.done && s.date && s.date < todayLocal();
         return `
-            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 py-1.5 border-b border-[#1B1A18]/10">
-                <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleStep('${pid}','${sid}', this.checked)" class="w-4 h-4 accent-[#02968A] shrink-0" aria-label="Étape faite">
-                <input type="text" value="${escapeHtml(s.label)}" onchange="renameStep('${pid}','${sid}', this.value)" class="flex-1 min-w-[120px] bg-transparent text-sm font-semibold px-1 py-0.5 rounded border border-transparent hover:border-[#1B1A18]/30 focus:border-[#1B1A18] focus:outline-none ${s.done ? 'line-through text-[#1B1A18]/50' : ''}">
-                <input type="date" value="${escapeHtml(s.date || '')}" onchange="setStepDate('${pid}','${sid}', this.value)" class="text-xs px-1 py-0.5 rounded border ${late ? 'border-[#CC0C33] bg-rose-100' : 'border-[#1B1A18]/30 bg-white'}">
-                <button onclick="moveStep('${pid}','${sid}',-1)" class="text-xs px-1 hover:text-[#CC0C33]" title="Monter">▲</button>
-                <button onclick="moveStep('${pid}','${sid}',1)" class="text-xs px-1 hover:text-[#CC0C33]" title="Descendre">▼</button>
-                <button onclick="deleteStep('${pid}','${sid}')" class="text-xs px-1 text-red-600" title="Supprimer">✕</button>
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 py-2 border-t border-dashed border-[#1B1A18]/40 first:border-t-0">
+                <input type="checkbox" ${s.done ? 'checked' : ''} data-change="toggleStep" data-id="${pid}" data-arg="${sid}" class="check" aria-label="Étape faite : ${escapeHtml(s.label)}">
+                <input type="text" value="${escapeHtml(s.label)}" data-change="renameStep" data-id="${pid}" data-arg="${sid}" aria-label="Nom de l'étape" class="field flex-1 min-w-[140px] min-h-[40px] py-1 bg-transparent border-transparent hover:border-[#1B1A18]/40 ${s.done ? 'line-through text-[#57514A]' : 'font-semibold'}">
+                <input type="date" value="${escapeHtml(s.date || '')}" data-change="setStepDate" data-id="${pid}" data-arg="${sid}" aria-label="Date de l'étape" class="field field-inline min-h-[40px] py-1 text-[15px] ${late ? 'border-[#CC0C33] text-[#8E0824]' : ''}">
+                <span class="flex gap-1">
+                    <button type="button" data-action="moveStep" data-id="${pid}" data-arg="${sid}" data-arg2="-1" class="btn btn-icon btn-ghost btn-sm" ${i === 0 ? 'disabled' : ''} aria-label="Monter l'étape"><i data-lucide="arrow-up" aria-hidden="true"></i></button>
+                    <button type="button" data-action="moveStep" data-id="${pid}" data-arg="${sid}" data-arg2="1" class="btn btn-icon btn-ghost btn-sm" ${i === p.steps.length - 1 ? 'disabled' : ''} aria-label="Descendre l'étape"><i data-lucide="arrow-down" aria-hidden="true"></i></button>
+                    <button type="button" data-action="deleteStep" data-id="${pid}" data-arg="${sid}" class="btn btn-icon btn-ghost btn-sm btn-danger" aria-label="Supprimer l'étape"><i data-lucide="trash-2" aria-hidden="true"></i></button>
+                </span>
             </div>`;
-    }).join('') : '<p class="text-xs text-[#1B1A18]/60">Aucune étape.</p>';
+    }).join('') : '<p class="hint m-0">Aucune étape.</p>';
 
     const linksHtml = p.links.length ? p.links.map(l => {
         const url = safeUrl(l.url);
         return `
             <div class="flex items-center gap-2 py-1">
-                <i data-lucide="link" class="w-4 h-4 text-[#02968A] shrink-0"></i>
-                ${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="underline font-semibold text-sm truncate">${escapeHtml(l.label || url)}</a>` : `<span class="text-sm">${escapeHtml(l.label)}</span>`}
-                <button onclick="deleteLink('${pid}','${escapeHtml(l.id)}')" class="ml-auto text-xs text-red-600" title="Supprimer">✕</button>
+                <i data-lucide="link" class="w-4 h-4 text-[#01675F] shrink-0" aria-hidden="true"></i>
+                ${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="underline font-semibold truncate">${escapeHtml(l.label || url)}</a>` : `<span>${escapeHtml(l.label)}</span>`}
+                <button type="button" data-action="deleteLink" data-id="${pid}" data-arg="${escapeHtml(l.id)}" class="btn btn-icon btn-ghost btn-sm btn-danger ml-auto" aria-label="Supprimer le lien"><i data-lucide="x" aria-hidden="true"></i></button>
             </div>`;
-    }).join('') : '<p class="text-xs text-[#1B1A18]/60">Aucun lien (Drive, WeTransfer, Canva, Pinterest...).</p>';
+    }).join('') : '<p class="hint m-0">Aucun lien (Drive, WeTransfer, Canva, Pinterest…).</p>';
 
     const sessionRows = projSessions.length === 0
-        ? `<tr><td colspan="5" class="p-4 text-center text-gray-500">Aucune session enregistrée pour ce projet.</td></tr>`
+        ? `<tr><td colspan="5" class="empty">Aucune session enregistrée pour ce projet.</td></tr>`
         : projSessions.map(s => `
-            <tr class="border-b border-gray-200 hover:bg-gray-50">
-                <td class="p-2 whitespace-nowrap">${escapeHtml(formatDateFr(s.date))}</td>
-                <td class="p-2">${escapeHtml(s.category)}</td>
-                <td class="p-2 font-bold text-[#CC0C33] whitespace-nowrap">${formatHours(Number(s.durationSeconds) || 0)}</td>
-                <td class="p-2">${escapeHtml(s.notes || '')}</td>
-                <td class="p-2 text-right whitespace-nowrap space-x-2">
-                    <button onclick="editSession('${escapeHtml(s.id)}')" class="underline font-bold">Éditer</button>
-                    <button onclick="deleteSession('${escapeHtml(s.id)}')" class="underline font-bold text-red-600">Suppr.</button>
+            <tr>
+                <td class="whitespace-nowrap font-semibold">${escapeHtml(formatDateFr(s.date))}</td>
+                <td class="t-num text-right">${formatHours(Number(s.durationSeconds) || 0)}</td>
+                <td class="t-wide muted">${escapeHtml(s.category)}</td>
+                <td class="t-wide">${escapeHtml(s.notes || '')}</td>
+                <td class="t-actions text-right whitespace-nowrap">
+                    <button type="button" data-action="editSession" data-id="${escapeHtml(s.id)}" class="link">Éditer</button>
+                    <button type="button" data-action="deleteSession" data-id="${escapeHtml(s.id)}" class="link link-danger ml-3">Supprimer</button>
                 </td>
             </tr>`).join('');
 
+    const budgetCls = pct === null ? '' : pct > 100 ? 'over' : pct >= 80 ? 'warn' : '';
     document.getElementById('modal-project-content').innerHTML = `
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">${statusBadge(p.status)} <span class="muted text-sm font-semibold">${escapeHtml(typeLabel(p.type))}</span> ${p.deadline ? deadlineBadge(p) : ''}</div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-white border-2 border-[#1B1A18] p-4 rounded-[6px] space-y-2 shadow-[2px_2px_0px_#1B1A18] text-sm">
-                <div class="flex flex-wrap gap-2 items-center">${statusBadge(p.status)} <span class="text-xs font-semibold">${escapeHtml(typeLabel(p.type))}</span></div>
-                <p><strong>Client :</strong> ${client ? escapeHtml(clientName(client)) + (client.company ? ' (' + escapeHtml(client.company) + ')' : '') : 'Inconnu'}</p>
-                ${client && client.email ? `<p class="text-xs"><a class="underline" href="mailto:${escapeHtml(client.email)}">${escapeHtml(client.email)}</a>${client.phone ? ` · <a class="underline" href="tel:${escapeHtml(client.phone.replace(/\s/g, ''))}">${escapeHtml(client.phone)}</a>` : ''}</p>` : ''}
-                ${p.deadline ? `<p>${deadlineBadge(p)}</p>` : ''}
-                <p><strong>Description :</strong> ${escapeHtml(p.description || 'Aucune')}</p>
-                ${invoice ? `<a href="${escapeHtml(invoice)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 retro-btn-secondary px-2.5 py-1 text-sm"><i data-lucide="receipt" class="w-4 h-4"></i> Ouvrir le devis / la facture</a>` : ''}
+            <div class="panel pb grid gap-2 content-start text-[15px] bg-[#FBFAF8]">
+                <p class="m-0"><span class="label inline">Client</span><br>${client ? escapeHtml(clientName(client)) + (client.company ? ' · ' + escapeHtml(client.company) : '') : 'Inconnu'}</p>
+                ${client && (client.email || client.phone) ? `<p class="m-0 text-sm">${client.email ? `<a class="underline" href="mailto:${escapeHtml(client.email)}">${escapeHtml(client.email)}</a>` : ''}${client.email && client.phone ? ' · ' : ''}${client.phone ? `<a class="underline" href="tel:${escapeHtml(client.phone.replace(/\s/g, ''))}">${escapeHtml(client.phone)}</a>` : ''}</p>` : ''}
+                <p class="m-0"><span class="label inline">Description</span><br>${escapeHtml(p.description || 'Aucune')}</p>
+                ${invoice ? `<a href="${escapeHtml(invoice)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm justify-self-start"><i data-lucide="receipt" aria-hidden="true"></i> Ouvrir le devis / la facture</a>` : ''}
             </div>
-            <div class="bg-white border-2 border-[#1B1A18] p-4 rounded-[6px] space-y-2 shadow-[2px_2px_0px_#1B1A18] text-sm">
-                <p><strong>Temps passé :</strong> <span class="text-[#CC0C33] font-bold">${formatHours(totalSecs)}</span> ${rate ? `(${formatEuro(hours * rate)} à ${rate} €/h)` : ''}</p>
+            <div class="panel pb grid gap-3 content-start text-[15px] bg-[#FBFAF8]">
+                <div class="flex items-baseline gap-3 flex-wrap"><span class="num text-[40px] leading-none">${formatHours(totalSecs)}</span><span class="muted text-sm">${rate ? `${formatEuro(hours * rate)} à ${rate} €/h` : 'passées sur ce projet'}</span></div>
                 ${pct !== null ? `
-                    <div class="space-y-1">
-                        <p><strong>Budget :</strong> ${escapeHtml(p.hourBudget)} h — ${pct} % utilisé${pct > 100 ? ' ⚠️' : ''}</p>
-                        <div class="w-full bg-[#EFEEEC] border border-[#1B1A18] rounded-full h-2 overflow-hidden"><div class="${pct > 100 ? 'bg-[#1B1A18]' : pct >= 80 ? 'bg-[#D1A802]' : 'bg-[#CC0C33]'} h-2" style="width:${Math.min(pct, 100)}%"></div></div>
+                    <div class="grid gap-1">
+                        <p class="m-0 text-sm font-semibold">Budget : ${escapeHtml(p.hourBudget)} h · ${pct} % utilisé${pct > 100 ? ' (dépassé)' : ''}</p>
+                        <div class="bar"><div class="fill ${budgetCls}" data-pct="${pct}"></div></div>
                     </div>` : ''}
-                ${Number(p.price) > 0 ? `<p><strong>Forfait :</strong> ${formatEuroRound(p.price)} → <strong class="${hours > 0 && p.price / hours < rate ? 'text-[#CC0C33]' : 'text-[#02968A]'}">${hours > 0 ? formatEuroRound(p.price / hours) + '/h réels' : 'pas encore de temps'}</strong>${rate ? ` (visé : ${rate} €/h)` : ''}</p>` : ''}
+                ${Number(p.price) > 0 ? `<p class="m-0 text-sm"><strong>Forfait :</strong> ${formatEuroRound(p.price)} → <strong class="${hours > 0 && p.price / hours < rate ? 'text-[#8E0824]' : 'text-[#01675F]'}">${hours > 0 ? formatEuroRound(p.price / hours) + '/h réels' : 'pas encore de temps'}</strong>${rate ? ` (visé : ${rate} €/h)` : ''}</p>` : ''}
                 <div class="flex flex-wrap gap-2 pt-1">
-                    <button onclick="startTimerForProject('${pid}')" class="retro-btn px-2.5 py-1 text-sm flex items-center gap-1"><i data-lucide="play" class="w-4 h-4"></i> Chrono</button>
-                    <button onclick="openManualSessionForProject('${pid}')" class="retro-btn-secondary px-2.5 py-1 text-sm">+ Session</button>
+                    <button type="button" data-action="startTimerForProject" data-id="${pid}" class="btn btn-primary"><i data-lucide="play" aria-hidden="true"></i> Lancer le chrono</button>
+                    <button type="button" data-action="openManualSessionForProject" data-id="${pid}" class="btn"><i data-lucide="plus" aria-hidden="true"></i> Session</button>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white border-2 border-[#1B1A18] p-4 rounded-[6px] space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+        <section class="sheet-section">
             <div class="flex items-center justify-between gap-2">
-                <h4 class="font-heading text-xl">Étapes ${total ? `<span class="text-sm font-sans font-semibold">(${done}/${total})</span>` : ''}</h4>
-                <button onclick="addStep('${pid}')" class="retro-btn-secondary px-2.5 py-0.5 text-sm">+ Étape</button>
+                <h4 class="sheet-section-title">Étapes ${total ? `<span class="muted">· ${done}/${total}</span>` : ''}</h4>
+                <button type="button" data-action="addStep" data-id="${pid}" class="btn btn-sm"><i data-lucide="plus" aria-hidden="true"></i> Étape</button>
             </div>
-            ${total ? `<div class="w-full bg-[#EFEEEC] border border-[#1B1A18] rounded-full h-2 overflow-hidden"><div class="bg-[#02968A] h-2" style="width:${Math.round((done / total) * 100)}%"></div></div>` : ''}
+            ${total ? `<div class="bar"><div class="fill" data-pct="${Math.round((done / total) * 100)}"></div></div>` : ''}
             <div>${stepsHtml}</div>
-        </div>
+        </section>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-white border-2 border-[#1B1A18] p-4 rounded-[6px] space-y-2 shadow-[2px_2px_0px_#1B1A18]">
-                <h4 class="font-heading text-xl">Liens & fichiers</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section class="sheet-section content-start">
+                <h4 class="sheet-section-title">Liens & fichiers</h4>
                 <div>${linksHtml}</div>
-                <form onsubmit="addLink(event, '${pid}')" class="flex flex-wrap gap-2 pt-2 border-t border-[#1B1A18]/15">
-                    <input type="text" name="label" placeholder="Nom (ex : Moodboard)" class="retro-input text-xs flex-1 min-w-[100px] py-1">
-                    <input type="url" name="url" required placeholder="https://..." class="retro-input text-xs flex-1 min-w-[140px] py-1">
-                    <button type="submit" class="retro-btn-secondary px-2.5 py-0.5 text-sm">Ajouter</button>
+                <form data-submit="addLink" data-id="${pid}" class="flex flex-wrap gap-2">
+                    <input type="text" name="label" placeholder="Nom (ex : Moodboard)" aria-label="Nom du lien" class="field flex-1 min-w-[120px]">
+                    <input type="url" name="url" required placeholder="https://…" aria-label="Adresse du lien" class="field flex-1 min-w-[160px]">
+                    <button type="submit" class="btn">Ajouter</button>
                 </form>
-            </div>
-            <div class="bg-white border-2 border-[#1B1A18] p-4 rounded-[6px] space-y-2 shadow-[2px_2px_0px_#1B1A18]">
+            </section>
+            <section class="sheet-section content-start">
                 <div class="flex items-center justify-between gap-2">
-                    <h4 class="font-heading text-xl">Carnet de notes</h4>
-                    <button onclick="openNotesForProject('${pid}')" class="retro-btn-secondary px-2.5 py-0.5 text-sm">Ouvrir</button>
+                    <h4 class="sheet-section-title">Carnet de notes</h4>
+                    <button type="button" data-action="openNotesForProject" data-id="${pid}" class="btn btn-sm">Ouvrir</button>
                 </div>
-                <p class="text-xs whitespace-pre-line line-clamp-6 text-[#1B1A18]/80">${notesText ? escapeHtml(notesText.slice(0, 500)) : 'Carnet vide. Brief, questionnaire, comptes-rendus...'}</p>
-            </div>
+                <p class="m-0 text-sm whitespace-pre-line line-clamp-6 ${notesText ? '' : 'hint'}">${notesText ? escapeHtml(notesText.slice(0, 500)) : 'Carnet vide. Brief, questionnaire, comptes-rendus…'}</p>
+            </section>
         </div>
 
-        <div class="space-y-3">
-            <h4 class="font-heading text-xl">Sessions de travail</h4>
-            <div class="bg-white border-2 border-[#1B1A18] rounded-[6px] overflow-x-auto">
-                <table class="w-full text-left text-xs">
-                    <tr class="bg-[#CEB694] font-heading border-b-2 border-[#1B1A18]">
-                        <th class="p-2">Date</th><th class="p-2">Catégorie</th><th class="p-2">Durée</th><th class="p-2">Notes</th><th class="p-2 text-right">Action</th>
-                    </tr>
-                    ${sessionRows}
+        <section class="sheet-section">
+            <h4 class="sheet-section-title">Sessions de travail</h4>
+            <div class="table-wrap">
+                <table class="table table-stack">
+                    <thead><tr><th>Date</th><th>Durée</th><th>Catégorie</th><th>Notes</th><th class="text-right">Actions</th></tr></thead>
+                    <tbody>${sessionRows}</tbody>
                 </table>
             </div>
+        </section>
+
+        <div class="sheet-section justify-items-start">
+            <button type="button" data-action="deleteProject" data-id="${pid}" class="btn btn-danger"><i data-lucide="trash-2" aria-hidden="true"></i> Supprimer ce projet</button>
         </div>`;
     refreshIcons();
 }
 
 function startTimerForProject(pid) {
     closeModal('project-detail-modal');
+    switchTab('dashboard');
     document.getElementById('quick-project-select').value = pid;
     quickStartTimer();
 }
@@ -1809,7 +1960,7 @@ function deleteStep(pid, sid) {
 function moveStep(pid, sid, dir) {
     const p = getProject(pid);
     const i = p.steps.findIndex(x => x.id === sid);
-    const j = i + dir;
+    const j = i + Number(dir);
     if (i < 0 || j < 0 || j >= p.steps.length) return;
     [p.steps[i], p.steps[j]] = [p.steps[j], p.steps[i]];
     commitChange();
@@ -1849,7 +2000,7 @@ function renderProjects() {
         const count = k === 'tous' ? appData.projects.length : k === 'actifs'
             ? appData.projects.filter(p => p.status !== 'Terminé').length
             : appData.projects.filter(p => p.status === k).length;
-        return `<button onclick="setProjectFilter('${escapeHtml(k)}')" class="${projectStatusFilter === k ? 'retro-btn' : 'retro-btn-secondary'} px-2.5 py-0.5 text-sm">${escapeHtml(label)} <span class="text-xs">(${count})</span></button>`;
+        return `<button type="button" data-action="setProjectFilter" data-id="${escapeHtml(k)}" class="chip" aria-pressed="${projectStatusFilter === k}">${escapeHtml(label)} <span class="n">${count}</span></button>`;
     }).join('');
 
     const q = (document.getElementById('project-search').value || '').trim().toLowerCase();
@@ -1863,7 +2014,9 @@ function renderProjects() {
 
     const grid = document.getElementById('projects-grid');
     if (list.length === 0) {
-        grid.innerHTML = `<p class="text-[#1B1A18]/60 col-span-full text-center py-8">${appData.projects.length ? 'Aucun projet ne correspond.' : 'Aucun projet configuré.'}</p>`;
+        grid.innerHTML = appData.projects.length
+            ? `<p class="empty col-span-full"><strong>Aucun projet ne correspond.</strong>Changez la recherche ou le filtre de statut.</p>`
+            : `<div class="empty col-span-full grid gap-3"><p class="m-0"><strong>Aucun projet pour l’instant.</strong>Un projet est rattaché à un client : créez d’abord le client.</p><div class="flex flex-wrap gap-2"><button type="button" data-action="openClientModal" class="btn">Nouveau client</button><button type="button" data-action="openProjectModal" class="btn btn-primary">Nouveau projet</button></div></div>`;
         return;
     }
 
@@ -1873,38 +2026,33 @@ function renderProjects() {
         const { total, done } = stepsProgress(p);
         const ns = nextStep(p);
         const budgetHtml = pct !== null ? `
-            <div class="space-y-1 text-xs">
-                <div class="flex justify-between">
-                    <span>Temps / Budget</span>
-                    <span class="font-bold ${pct > 100 ? 'text-[#CC0C33]' : ''}">${formatHours(secs)} / ${escapeHtml(p.hourBudget)}h${pct >= 80 ? ' ⚠️' : ''}</span>
-                </div>
-                <div class="w-full bg-[#EFEEEC] border border-[#1B1A18] rounded-full h-2 overflow-hidden">
-                    <div class="${pct > 100 ? 'bg-[#1B1A18]' : pct >= 80 ? 'bg-[#D1A802]' : 'bg-[#CC0C33]'} h-2 rounded-full" style="width: ${Math.min(pct, 100)}%"></div>
-                </div>
-            </div>` : `<div class="text-xs font-semibold">Temps total : <span class="text-[#CC0C33] font-bold">${formatHours(secs)}</span></div>`;
+            <div class="grid gap-1 text-sm">
+                <div class="flex justify-between gap-2"><span class="muted">Temps / budget</span><span class="font-semibold ${pct > 100 ? 'text-[#8E0824]' : ''}">${formatHours(secs)} / ${escapeHtml(p.hourBudget)} h</span></div>
+                <div class="bar"><div class="fill ${pct > 100 ? 'over' : pct >= 80 ? 'warn' : ''}" data-pct="${pct}"></div></div>
+            </div>` : '';
 
         return `
-            <div class="retro-box p-5 space-y-3 flex flex-col justify-between bg-white cursor-pointer hover:bg-[#EFEEEC] transition ${p.status === 'Terminé' ? 'opacity-70' : ''}" onclick="openProjectDetailModal('${escapeHtml(p.id)}')">
-                <div class="space-y-2">
-                    <div class="flex items-start justify-between gap-2">
-                        <h3 class="font-heading text-xl text-[#1B1A18]">${escapeHtml(p.name)}</h3>
-                        ${statusBadge(p.status)}
-                    </div>
-                    <p class="text-xs font-semibold text-[#1B1A18]/70">${escapeHtml(clientName(getClient(p.clientId)))} · ${escapeHtml(typeLabel(p.type))}</p>
-                    ${deadlineBadge(p)}
-                    <p class="text-xs line-clamp-2">${escapeHtml(p.description || '')}</p>
+            <article class="card ${p.status === 'Terminé' ? 'is-done' : ''}">
+                <button type="button" class="card-main grid gap-2" data-action="openProjectDetailModal" data-id="${escapeHtml(p.id)}">
+                    <span class="flex items-start justify-between gap-3">
+                        <span class="card-title">${escapeHtml(p.name)}</span>
+                        <span class="num text-[22px] leading-none whitespace-nowrap">${formatHours(secs)}</span>
+                    </span>
+                    <span class="card-meta">${escapeHtml(clientName(getClient(p.clientId)))} · ${escapeHtml(typeLabel(p.type))}</span>
+                    <span class="flex flex-wrap items-center gap-x-4 gap-y-1">${statusBadge(p.status)}${deadlineBadge(p)}</span>
+                    <span class="pc-only grid gap-2">
+                        ${p.description ? `<span class="text-sm line-clamp-2">${escapeHtml(p.description)}</span>` : ''}
+                        ${total ? `<span class="text-sm"><span class="muted">Étapes</span> <strong>${done}/${total}</strong>${ns ? ` · prochaine : ${escapeHtml(ns.label)}${ns.date ? ' (' + escapeHtml(formatDateShort(ns.date)) + ')' : ''}` : ''}</span>` : ''}
+                        ${budgetHtml}
+                    </span>
+                </button>
+                <div class="card-foot pc-only">
+                    <button type="button" data-action="editProject" data-id="${escapeHtml(p.id)}" class="btn btn-sm">Éditer</button>
+                    <button type="button" data-action="deleteProject" data-id="${escapeHtml(p.id)}" class="btn btn-sm btn-danger">Supprimer</button>
                 </div>
-                <div class="space-y-2 pt-2 border-t border-[#1B1A18]/20">
-                    ${total ? `<div class="text-xs"><div class="flex justify-between"><span>Étapes</span><span class="font-bold">${done}/${total}</span></div>
-                        ${ns ? `<p class="text-[11px] text-[#1B1A18]/70 truncate">Prochaine : ${escapeHtml(ns.label)}${ns.date ? ' (' + escapeHtml(formatDateFr(ns.date)) + ')' : ''}</p>` : ''}</div>` : ''}
-                    ${budgetHtml}
-                </div>
-                <div class="flex justify-end gap-2" onclick="event.stopPropagation()">
-                    <button onclick="editProject('${escapeHtml(p.id)}')" class="retro-btn-secondary px-2.5 py-1 text-xs font-bold">Éditer</button>
-                    <button onclick="deleteProject('${escapeHtml(p.id)}')" class="retro-btn px-2.5 py-1 text-xs font-bold">Supprimer</button>
-                </div>
-            </div>`;
+            </article>`;
     }).join('');
+    refreshIcons();
 }
 
 function toggleBudgetInput() {
@@ -2037,34 +2185,42 @@ function renderClients() {
         .sort((a, b) => clientName(a).localeCompare(clientName(b), 'fr'));
 
     if (list.length === 0) {
-        grid.innerHTML = `<p class="text-[#1B1A18]/60 col-span-full text-center py-8">${appData.clients.length ? 'Aucun client ne correspond.' : 'Aucun client.'}</p>`;
+        grid.innerHTML = appData.clients.length
+            ? `<p class="empty col-span-full"><strong>Aucun client ne correspond.</strong>Essayez un autre nom, une entreprise ou un email.</p>`
+            : `<div class="empty col-span-full grid gap-3"><p class="m-0"><strong>Aucun client pour l’instant.</strong>Ajoutez votre premier client pour pouvoir créer ses projets.</p><div><button type="button" data-action="openClientModal" class="btn btn-primary">Nouveau client</button></div></div>`;
         return;
     }
     grid.innerHTML = list.map(c => {
         const projects = appData.projects.filter(p => p.clientId === c.id);
         const secs = projects.reduce((a, p) => a + projectSecs(p.id), 0);
         return `
-            <div class="retro-box p-5 space-y-3 bg-white flex flex-col justify-between">
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between gap-2">
-                        <h3 class="font-heading text-xl text-[#1B1A18]">${escapeHtml(clientName(c))}</h3>
-                        <span class="text-xs px-2 py-0.5 rounded-[4px] bg-[#CEB694] border border-[#1B1A18] font-bold shrink-0">${escapeHtml(c.company || 'Particulier')}</span>
+            <article class="card">
+                <div class="card-body">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <h3 class="card-title m-0">${escapeHtml(clientName(c))}</h3>
+                            <p class="card-meta m-0">${escapeHtml(c.company || 'Particulier')}</p>
+                        </div>
+                        ${projects.length ? `<span class="num text-[22px] leading-none whitespace-nowrap">${formatHours(secs)}</span>` : ''}
                     </div>
-                    <p class="text-xs flex items-center gap-1.5"><i data-lucide="mail" class="w-3.5 h-3.5 text-[#CC0C33]"></i> ${c.email ? `<a class="underline" href="mailto:${escapeHtml(c.email)}">${escapeHtml(c.email)}</a>` : 'N/A'}</p>
-                    <p class="text-xs flex items-center gap-1.5"><i data-lucide="phone" class="w-3.5 h-3.5 text-[#02968A]"></i> ${c.phone ? `<a class="underline" href="tel:${escapeHtml(c.phone.replace(/\s/g, ''))}">${escapeHtml(c.phone)}</a>` : 'N/A'}</p>
-                    <p class="text-xs pt-1 border-t border-[#1B1A18]/20"><strong>Facturation :</strong> ${escapeHtml(c.address || 'N/A')}</p>
-                    ${c.deliveryAddress ? `<p class="text-xs"><strong>Livraison :</strong> ${escapeHtml(c.deliveryAddress)}</p>` : ''}
-                    ${projects.length ? `<div class="text-xs pt-1 border-t border-[#1B1A18]/20 space-y-1">
-                        <p class="font-semibold">${projects.length} projet(s) · ${formatHours(secs)}</p>
-                        ${projects.map(p => `<button onclick="openProjectDetailModal('${escapeHtml(p.id)}')" class="block underline text-left truncate w-full">${escapeHtml(p.name)} — ${escapeHtml(p.status)}</button>`).join('')}
-                    </div>` : '<p class="text-xs text-[#1B1A18]/60">Aucun projet</p>'}
+                    <p class="m-0 flex items-center gap-2"><i data-lucide="mail" class="w-4 h-4 shrink-0 text-[#57514A]" aria-hidden="true"></i> ${c.email ? `<a class="underline truncate" href="mailto:${escapeHtml(c.email)}">${escapeHtml(c.email)}</a>` : '<span class="muted">Pas d’email</span>'}</p>
+                    <p class="m-0 flex items-center gap-2"><i data-lucide="phone" class="w-4 h-4 shrink-0 text-[#57514A]" aria-hidden="true"></i> ${c.phone ? `<a class="underline" href="tel:${escapeHtml(c.phone.replace(/\s/g, ''))}">${escapeHtml(c.phone)}</a>` : '<span class="muted">Pas de téléphone</span>'}</p>
+                    <div class="pc-only grid gap-1 pt-2 border-t border-dashed border-[#1B1A18]/40">
+                        <p class="m-0"><span class="muted">Facturation :</span> ${escapeHtml(c.address || '—')}</p>
+                        ${c.deliveryAddress ? `<p class="m-0"><span class="muted">Livraison :</span> ${escapeHtml(c.deliveryAddress)}</p>` : ''}
+                    </div>
+                    ${projects.length ? `<div class="grid gap-1 pt-2 border-t border-dashed border-[#1B1A18]/40">
+                        <p class="m-0 label">${projects.length} projet${projects.length > 1 ? 's' : ''}</p>
+                        ${projects.map(p => `<button type="button" data-action="openProjectDetailModal" data-id="${escapeHtml(p.id)}" class="flex items-center justify-between gap-3 w-full text-left py-1 min-h-[36px] hover:underline"><span class="truncate font-semibold">${escapeHtml(p.name)}</span>${statusBadge(p.status)}</button>`).join('')}
+                    </div>` : '<p class="m-0 hint">Aucun projet</p>'}
                 </div>
-                <div class="flex justify-end gap-2 pt-2 border-t border-[#1B1A18]/20">
-                    <button onclick="editClient('${escapeHtml(c.id)}')" class="retro-btn-secondary px-2.5 py-1 text-xs font-bold">Éditer</button>
-                    <button onclick="deleteClient('${escapeHtml(c.id)}')" class="retro-btn px-2.5 py-1 text-xs font-bold">Supprimer</button>
+                <div class="card-foot">
+                    <button type="button" data-action="editClient" data-id="${escapeHtml(c.id)}" class="btn btn-sm">Éditer</button>
+                    <button type="button" data-action="deleteClient" data-id="${escapeHtml(c.id)}" class="btn btn-sm btn-danger">Supprimer</button>
                 </div>
-            </div>`;
+            </article>`;
     }).join('');
+    refreshIcons();
 }
 
 function openClientModal(id = null, prefill = null) {
