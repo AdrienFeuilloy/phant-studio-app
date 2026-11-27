@@ -1,10 +1,11 @@
 /* Service worker Phant Studio : permet d'ouvrir l'appli sans réseau.
    - Fichiers de l'appli : réseau d'abord (toujours la dernière version), copie de secours sinon.
-   - Polices / icônes / Tailwind : copie locale d'abord, mise à jour en arrière-plan.
+   - Icônes / Tailwind : copie locale d'abord, mise à jour en arrière-plan.
    - GitHub et Gemini : jamais interceptés. */
-const CACHE = 'phant-studio-v4';
-const APP_FILES = ['./', 'index.html', 'script.js', 'style.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
-const CDN_HOSTS = ['cdn.tailwindcss.com', 'unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+const CACHE = 'phant-studio-v5';
+const APP_FILES = ['./', 'index.html', 'script.js', 'style.css', 'manifest.webmanifest',
+    'fonts/commissioner.woff2', 'fonts/passion-one.woff2'];
+const CDN_HOSTS = ['cdn.tailwindcss.com', 'unpkg.com'];
 
 self.addEventListener('install', (event) => {
     event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_FILES)).then(() => self.skipWaiting()));
