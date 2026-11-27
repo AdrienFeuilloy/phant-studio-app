@@ -1,8 +1,8 @@
 // Permet à l'appli de s'ouvrir même sans réseau.
 // Après une mise à jour des fichiers, change le numéro ci-dessous (v1 → v2…).
-const CACHE = "phant-accueil-v3";
+const CACHE = "phant-accueil-v4";
 const FICHIERS = [
-  "./", "index.html", "style.css", "app.js", "astuces.js", "droplets.js", "manifest.webmanifest",
+  "./", "index.html", "style.css", "app.js", "astuces.js", "droplets.js", "facade.js", "manifest.webmanifest",
   "icons/icon32.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png"
 ];
 

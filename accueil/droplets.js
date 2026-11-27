@@ -3,6 +3,7 @@
    Rien n'est envoyé sur internet.
    - Export web : redimensionne + compresse (WebP / JPEG / PNG)
    - Mosaïque LEGO : vue de dessus, en tenons, avec liste des pièces
+   - Découpe façade : voir facade.js (seule exception : la photo réduite part à l'analyse)
    ========================================================== */
 "use strict";
 (() => {
@@ -83,7 +84,8 @@
     document.querySelectorAll(".droplet-onglet").forEach(b => b.setAttribute("aria-selected", String(b.dataset.d === O.mode)));
     $("#opt-web").hidden = O.mode !== "web";
     $("#opt-lego").hidden = O.mode !== "lego";
-    $("#zone-texte").textContent = O.mode === "web" ? "Dépose tes images ici" : "Dépose une image ici";
+    $("#opt-facade").hidden = O.mode !== "facade";
+    $("#zone-texte").textContent = O.mode === "web" ? "Dépose tes images ici" : O.mode === "facade" ? "Dépose la photo du bâtiment" : "Dépose une image ici";
     $("#fichier-droplet").multiple = O.mode === "web";
   }
   function majQualite() {
@@ -134,6 +136,7 @@
     if (!images.length) { notifier("Ce n'est pas une image"); return; }
     $("#zone-depot").scrollIntoView({ behavior: "smooth", block: "nearest" });
     if (O.mode === "web") images.forEach(exportWeb);
+    else if (O.mode === "facade") window.decoupeFacade(images[0], { telecharger, nomPropre: propre });
     else mosaique(images[0]);
   }
 

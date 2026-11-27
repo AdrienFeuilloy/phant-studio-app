@@ -55,6 +55,7 @@
         <div class="droplet-onglets" role="tablist">
           <button class="droplet-onglet" data-d="web" role="tab">Export web</button>
           <button class="droplet-onglet" data-d="lego" role="tab">Mosaïque LEGO</button>
+          <button class="droplet-onglet" data-d="facade" role="tab">Façade</button>
         </div>
         <div id="opt-web" class="droplet-options">
           <label>Taille max<select id="d-largeur">
@@ -72,6 +73,10 @@
             <option value="64">64 tenons</option><option value="96">96 tenons</option><option value="128">128 tenons</option>
           </select></label>
           <label class="case"><input id="d-tramage" type="checkbox"> Tramage <small>(dégradés plus doux)</small></label>
+        </div>
+        <div id="opt-facade" class="droplet-options" hidden>
+          <label class="large">Clé API Anthropic <small>(gardée sur cet appareil ; vide = description à remplir à la main)</small><input id="d-cle" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
+          <p class="facade-note">Seule la photo, réduite, part à l'analyse (modèle le moins coûteux, moins d'un centime). Le dessin et la planche se font ici.</p>
         </div>
         <label id="zone-depot" class="zone-depot">
           <input id="fichier-droplet" type="file" accept="image/*" hidden>
@@ -199,6 +204,7 @@
 
   <script src="astuces.js"></script>
   <script src="app.js"></script>
+  <script src="facade.js"></script>
   <script src="droplets.js"></script>
 </body>
 </html>
