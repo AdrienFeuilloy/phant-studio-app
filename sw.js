@@ -1,7 +1,7 @@
 /* Service worker Phant Studio : permet d'ouvrir l'appli sans réseau.
    - Fichiers de l'appli : réseau d'abord (toujours la dernière version), copie de secours sinon.
-   - Tout le reste (GitHub, Gemini) : jamais intercepté. Aucun fichier ne vient d'un autre site. */
-const CACHE = 'phant-studio-v6';
+   - Tout le reste (GitHub) : jamais intercepté. Aucun fichier ne vient d'un autre site. */
+const CACHE = 'phant-studio-v7';
 const APP_FILES = ['./', 'index.html', 'script.js', 'style.css', 'tailwind.css', 'vendor/lucide-0.460.0.min.js',
     'manifest.webmanifest', 'fonts/commissioner.woff2', 'fonts/passion-one.woff2'];
 

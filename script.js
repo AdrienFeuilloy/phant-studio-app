@@ -1,7 +1,7 @@
 'use strict';
 
 /* =====================================================================
-   PHANT STUDIO — Suivi & Gestion Projets  (v3.1.0)
+   PHANT STUDIO — Suivi & Gestion Projets  (v3.2.0)
    Données : localStorage (cet appareil) + data.json dans un dépôt
    GitHub PRIVÉ (synchronisation entre appareils).
    ===================================================================== */
@@ -14,11 +14,8 @@ const LS = {
     notesTarget: 'phant_notes_target',
     ghUser: 'phant_gh_user',
     ghRepo: 'phant_gh_repo',
-    ghToken: 'phant_gh_token',
-    geminiKey: 'phant_gemini_key',
-    geminiModel: 'phant_gemini_model'
+    ghToken: 'phant_gh_token'
 };
-const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest';
 const DEFAULT_RATE = 35;
 const FORGOTTEN_TIMER_SECS = 4 * 3600;
 const QUOTE_FOLLOWUP_DAYS = 10;
@@ -57,10 +54,6 @@ let saveDebounce = null;
 let saving = false;
 let saveAgain = false;
 
-let currentBase64Image = null;
-let currentImageMime = 'image/png';
-let lastAnalysis = null;   // { structured: objet | null, text: string }
-let aiFlow = null;         // création client + projet depuis l'IA
 
 let timerState = loadTimerState();
 let currentNotesTarget = lsGet(LS.notesTarget) || 'general';
@@ -166,16 +159,16 @@ function refreshIcons() {
    --------------------------------------------------------------------- */
 const ACTIONS = {
     switchTab, openConfigModal, exportDataCSV, quickStartTimer, toggleTimerPause, stopTimer, startTimer, pauseTimer,
-    discardTimer, fixForgottenTimer, openSessionsModal, openDecompilerModal, openCurrentNotesProject, formatText, clearNotes,
+    discardTimer, fixForgottenTimer, openSessionsModal, openCurrentNotesProject, formatText, clearNotes,
     loadQuestionnaire, openProjectModal, exportICS, changeCalendarMonth, openClientModal, closeModal, clearSessionFilters,
-    openManualSessionModal, closeAndOpenConfig, clickInput, analyzeImageWithGemini, copyAnalysisToEditor, createFromAnalysis,
+    openManualSessionModal, closeAndOpenConfig,
     editProject, deleteProject, cancelClientModal, cancelProjectModal, suggestBudgetFromPrice, openLoginSetup, openVersionsModal,
     exportBackupJSON, logout, restoreVersion, openProjectDetailModal, editSession, deleteSession, startTimerForProject,
     openManualSessionForProject, addStep, moveStep, deleteStep, deleteLink, openNotesForProject, setProjectFilter,
     editClient, deleteClient,
     // champs (change / input)
     onTimerFieldChange, switchNotesTarget, renderProjects, renderClients, renderStats, renderSessions, saveMonthlyGoal,
-    toggleBudgetInput, handleFileSelect, importBackupJSON, toggleStep, renameStep, setStepDate,
+    toggleBudgetInput, importBackupJSON, toggleStep, renameStep, setStepDate,
     // formulaires (submit)
     saveManualSession, saveClient, saveProject, handleLoginSubmit, handleAuthSubmit, addLink
 };
@@ -216,7 +209,6 @@ function setupActions() {
     });
 }
 
-function clickInput(id) { const el = document.getElementById(id); if (el) el.click(); }
 function closeAndOpenConfig(modalId) { closeModal(modalId); openConfigModal(); }
 function openCurrentNotesProject() { if (currentNotesTarget !== 'general') openProjectDetailModal(currentNotesTarget); }
 
@@ -265,7 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(refreshTimerDisplay, 1000);
 
     setupEditor();
-    setupDropZone();
+    // Ancienne clé Gemini : on l'efface de cet appareil
+    lsDel('phant_gemini_key'); lsDel('phant_gemini_model');
     setupKeyboard();
 
     if (isConfigured()) syncFromGitHub();
@@ -551,8 +544,6 @@ function openConfigModal() {
     document.getElementById('gh-username-input').value = ghConfig.username;
     document.getElementById('gh-repo-input').value = ghConfig.repo;
     document.getElementById('gh-token-input').value = ghConfig.token;
-    document.getElementById('gemini-key-input').value = lsGet(LS.geminiKey);
-    document.getElementById('gemini-model-input').value = lsGet(LS.geminiModel) || DEFAULT_GEMINI_MODEL;
     openModal('config-modal');
 }
 
@@ -561,8 +552,6 @@ function handleAuthSubmit(e) {
     const username = document.getElementById('gh-username-input').value.trim();
     const repo = document.getElementById('gh-repo-input').value.trim().replace(/\.git$/, '');
     const token = document.getElementById('gh-token-input').value.trim();
-    const geminiKey = document.getElementById('gemini-key-input').value.trim();
-    const geminiModel = document.getElementById('gemini-model-input').value.trim() || DEFAULT_GEMINI_MODEL;
 
     if (!token || !username || !repo) { alert('Veuillez remplir les 3 champs GitHub.'); return; }
 
@@ -573,8 +562,6 @@ function handleAuthSubmit(e) {
     lsSet(LS.ghToken, token);
     lsSet(LS.ghUser, username);
     lsSet(LS.ghRepo, repo);
-    if (geminiKey) lsSet(LS.geminiKey, geminiKey); else lsDel(LS.geminiKey);
-    lsSet(LS.geminiModel, geminiModel);
 
     closeModal('config-modal');
     syncFromGitHub();
@@ -1525,173 +1512,6 @@ const QUESTIONNAIRES = {
 function loadQuestionnaire(type) { if (QUESTIONNAIRES[type]) appendToEditor(QUESTIONNAIRES[type]); }
 
 /* ---------------------------------------------------------------------
-   DÉCOMPILATEUR IA
-   --------------------------------------------------------------------- */
-function openDecompilerModal() {
-    document.getElementById('decompiler-no-key').classList.toggle('hidden', !!lsGet(LS.geminiKey));
-    openModal('decompiler-modal');
-}
-
-function setupDropZone() {
-    const dropZone = document.getElementById('drop-zone');
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-[#CEB694]/40'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('bg-[#CEB694]/40'));
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('bg-[#CEB694]/40');
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
-    });
-}
-
-function handleFileSelect(e) { if (e.target.files && e.target.files[0]) processFile(e.target.files[0]); e.target.value = ''; }
-
-function processFile(file) {
-    if (!file.type.startsWith('image/')) { alert('Merci de choisir une image (PNG, JPG...).'); return; }
-    const reader = new FileReader();
-    reader.onload = function (ev) {
-        currentImageMime = file.type || 'image/png';
-        currentBase64Image = ev.target.result.split(',')[1];
-        document.getElementById('image-preview').src = ev.target.result;
-        document.getElementById('image-preview-container').classList.remove('hidden');
-    };
-    reader.readAsDataURL(file);
-}
-
-const AI_PROMPT = `Tu es l'assistant de PhantStudio (studio de création graphique : illustration, papeterie mariage, faire-parts, logos, affiches).
-Analyse cette capture d'écran de conversation ou note client et réponds UNIQUEMENT avec un objet JSON (sans texte autour) de cette forme :
-{
-  "client": { "prenom": "", "nom": "", "entreprise": "", "email": "", "telephone": "", "adresse": "" },
-  "projet": { "nom": "nom court du projet", "type": "mariage | logo | affiche | illustration | autre", "description": "une phrase", "deadline": "AAAA-MM-JJ ou vide" },
-  "besoins": ["quantités, formats, finitions, couleurs, ambiance..."],
-  "dates": ["toutes les dates mentionnées, avec leur signification"],
-  "budget": "budget mentionné ou vide",
-  "actions": ["liste d'actions concrètes à faire"],
-  "resume": "résumé en 2 ou 3 phrases"
-}
-Laisse vide ("") ce qui n'est pas visible. N'invente rien. Nous sommes le ${new Date().toLocaleDateString('fr-FR')}.`;
-
-function parseAiJson(text) {
-    const cleaned = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
-    const obj = safeParse(cleaned, null);
-    return obj && typeof obj === 'object' ? obj : null;
-}
-
-function analysisToText(a) {
-    const c = a.client || {}, p = a.projet || {};
-    const list = arr => (Array.isArray(arr) && arr.length ? arr.map(x => `• ${x}`).join('\n') : '—');
-    return [
-        `CLIENT : ${[c.prenom, c.nom].filter(Boolean).join(' ') || '—'}${c.entreprise ? ' (' + c.entreprise + ')' : ''}`,
-        c.email ? `Email : ${c.email}` : '', c.telephone ? `Tél : ${c.telephone}` : '', c.adresse ? `Adresse : ${c.adresse}` : '',
-        '', `PROJET : ${p.nom || '—'} — ${typeLabel(p.type)}`, p.description || '',
-        p.deadline ? `Deadline : ${formatDateFr(p.deadline)}` : '',
-        '', 'BESOINS :', list(a.besoins),
-        '', 'DATES :', list(a.dates),
-        a.budget ? `\nBUDGET : ${a.budget}` : '',
-        '', 'ACTIONS :', list(a.actions),
-        '', `RÉSUMÉ : ${a.resume || '—'}`
-    ].filter((l, i, arr) => !(l === '' && arr[i - 1] === '')).join('\n').trim();
-}
-
-function analysisToHtml(a) {
-    const ul = arr => Array.isArray(arr) && arr.length ? `<ul>${arr.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : '<p>—</p>';
-    return `<h2>BRIEF DÉCOMPILÉ PAR L'IA — ${escapeHtml(formatDateFr(todayLocal()))}</h2>
-        <p><strong>Résumé :</strong> ${escapeHtml(a.resume || '—')}</p>
-        <h3>Besoins</h3>${ul(a.besoins)}
-        <h3>Dates mentionnées</h3>${ul(a.dates)}
-        ${a.budget ? `<p><strong>Budget évoqué :</strong> ${escapeHtml(a.budget)}</p>` : ''}
-        <h3>Actions à faire</h3>${ul(a.actions)}`;
-}
-
-async function analyzeImageWithGemini() {
-    if (!currentBase64Image) return;
-    const apiKey = lsGet(LS.geminiKey);
-    if (!apiKey) { document.getElementById('decompiler-no-key').classList.remove('hidden'); return; }
-    const model = lsGet(LS.geminiModel) || DEFAULT_GEMINI_MODEL;
-
-    const output = document.getElementById('analysis-text-output');
-    const btn = document.getElementById('btn-analyze');
-    document.getElementById('analysis-loading').classList.remove('hidden');
-    document.getElementById('analysis-result-container').classList.add('hidden');
-    btn.disabled = true;
-    lastAnalysis = null;
-
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-            body: JSON.stringify({
-                contents: [{ role: 'user', parts: [{ text: AI_PROMPT }, { inlineData: { mimeType: currentImageMime, data: currentBase64Image } }] }],
-                generationConfig: { responseMimeType: 'application/json' }
-            })
-        });
-        const result = await response.json();
-        if (!response.ok) {
-            const msg = result?.error?.message || `Erreur ${response.status}`;
-            output.innerText = `L'IA a renvoyé une erreur :\n${msg}\n\nVérifiez la clé et le nom du modèle dans « Réglages & Sync ».`;
-        } else {
-            const raw = (result?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('').trim();
-            const structured = parseAiJson(raw);
-            lastAnalysis = { structured, text: structured ? analysisToText(structured) : (raw || 'Aucun texte renvoyé par l\'IA.') };
-            output.innerText = lastAnalysis.text;
-        }
-    } catch (err) {
-        output.innerText = 'Impossible de joindre l\'IA (connexion Internet ?).';
-    } finally {
-        document.getElementById('analysis-loading').classList.add('hidden');
-        document.getElementById('analysis-result-container').classList.remove('hidden');
-        document.getElementById('btn-ai-create').disabled = !(lastAnalysis && lastAnalysis.structured);
-        btn.disabled = false;
-    }
-}
-
-function copyAnalysisToEditor() {
-    if (!lastAnalysis) return;
-    appendToEditor(lastAnalysis.structured ? analysisToHtml(lastAnalysis.structured)
-        : `<h2>DÉCOMPILATION IA — CONVERSATION CLIENT</h2><pre>${escapeHtml(lastAnalysis.text)}</pre>`);
-    closeModal('decompiler-modal');
-    switchTab('timer');
-}
-
-function findExistingClient(c) {
-    const email = (c.email || '').trim().toLowerCase();
-    const full = `${c.prenom || ''} ${c.nom || ''}`.trim().toLowerCase();
-    return appData.clients.find(x =>
-        (email && (x.email || '').toLowerCase() === email) ||
-        (full && clientName(x).toLowerCase() === full));
-}
-
-function createFromAnalysis() {
-    if (!lastAnalysis || !lastAnalysis.structured) return;
-    const a = lastAnalysis.structured;
-    const c = a.client || {};
-    closeModal('decompiler-modal');
-    aiFlow = { analysis: a, clientId: null };
-
-    const existing = findExistingClient(c);
-    if (existing && confirm(`Le client « ${clientName(existing)} » existe déjà. L'utiliser pour ce nouveau projet ?`)) {
-        aiFlow.clientId = existing.id;
-        openProjectModalFromAI();
-        return;
-    }
-    openClientModal(null, {
-        firstname: c.prenom, lastname: c.nom, company: c.entreprise, email: c.email, phone: c.telephone, address: c.adresse
-    });
-    document.getElementById('client-ai-hint').classList.remove('hidden');
-}
-
-function openProjectModalFromAI() {
-    const p = (aiFlow && aiFlow.analysis.projet) || {};
-    openProjectModal(null);
-    document.getElementById('project-name').value = p.nom || '';
-    document.getElementById('project-type').value = PROJECT_TYPES[p.type] ? p.type : 'autre';
-    document.getElementById('project-description').value = p.description || '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(p.deadline || '')) document.getElementById('project-deadline').value = p.deadline;
-    document.getElementById('project-client-id').value = aiFlow.clientId || '';
-    document.getElementById('project-status').value = 'Devis envoyé';
-    document.getElementById('project-ai-hint').classList.remove('hidden');
-}
-
-/* ---------------------------------------------------------------------
    HISTORIQUE DES SESSIONS
    --------------------------------------------------------------------- */
 function openSessionsModal() { renderSessions(); openModal('sessions-modal'); }
@@ -2069,7 +1889,6 @@ function suggestBudgetFromPrice() {
 function openProjectModal(id = null) {
     populateSelects();
     document.getElementById('project-no-client-hint').classList.toggle('hidden', appData.clients.length > 0);
-    document.getElementById('project-ai-hint').classList.add('hidden');
     if (id) {
         const p = getProject(id);
         if (!p) return;
@@ -2100,7 +1919,7 @@ function openProjectModal(id = null) {
     openModal('project-modal');
 }
 
-function cancelProjectModal() { aiFlow = null; closeModal('project-modal'); }
+function cancelProjectModal() { closeModal('project-modal'); }
 
 function saveProject(e) {
     e.preventDefault();
@@ -2135,15 +1954,6 @@ function saveProject(e) {
         notes: existing ? existing.notes : ''
     };
 
-    if (!existing && aiFlow) {
-        projData.notes = analysisToHtml(aiFlow.analysis);
-        const c = aiFlow.analysis.client || {};
-        const cl = getClient(projData.clientId);
-        if (cl && c.adresse && !cl.address) cl.address = c.adresse;
-    }
-    const fromAI = !existing && !!aiFlow;
-    aiFlow = null;
-
     const index = existing ? appData.projects.findIndex(p => p.id === id) : -1;
     if (index !== -1) appData.projects[index] = normalizeProject(projData);
     else appData.projects.push(normalizeProject(projData));
@@ -2151,7 +1961,6 @@ function saveProject(e) {
     commitChange();
     closeModal('project-modal');
     if (!existing) openProjectDetailModal(projData.id);
-    if (fromAI) switchNotesTarget(projData.id);
 }
 
 function editProject(id) { openProjectModal(id); }
@@ -2224,7 +2033,6 @@ function renderClients() {
 }
 
 function openClientModal(id = null, prefill = null) {
-    document.getElementById('client-ai-hint').classList.add('hidden');
     const set = (field, v) => { document.getElementById(field).value = v || ''; };
     if (id) {
         const c = getClient(id);
@@ -2246,7 +2054,7 @@ function openClientModal(id = null, prefill = null) {
     openModal('client-modal');
 }
 
-function cancelClientModal() { aiFlow = null; closeModal('client-modal'); }
+function cancelClientModal() { closeModal('client-modal'); }
 
 function saveClient(e) {
     e.preventDefault();
@@ -2267,11 +2075,6 @@ function saveClient(e) {
 
     commitChange();
     closeModal('client-modal');
-
-    if (!id && aiFlow && !aiFlow.clientId) {
-        aiFlow.clientId = clientData.id;
-        openProjectModalFromAI();
-    }
 }
 
 function editClient(id) { openClientModal(id); }

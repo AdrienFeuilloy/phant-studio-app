@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.github.com https://generativelanguage.googleapis.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.github.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
     <meta name="referrer" content="no-referrer">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#CEB694">
@@ -25,7 +25,7 @@
     <header class="masthead">
         <div class="masthead-in">
             <div class="min-w-0">
-                <h1 class="wordmark m-0">PHANT STUDIO <span class="version">v3.1.0</span></h1>
+                <h1 class="wordmark m-0">PHANT STUDIO <span class="version">v3.2.0</span></h1>
                 <div class="brand-sub">
                     <span id="sync-status-badge" class="sync sync-warning" role="status">Local uniquement</span>
                     <span class="tagline hidden lg:inline">Chaque création en fait rêver d’autres.</span>
@@ -145,7 +145,7 @@
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button type="button" data-action="openSessionsModal" class="btn"><i data-lucide="history" aria-hidden="true"></i> Historique des sessions</button>
-                    <button type="button" data-action="openDecompilerModal" class="btn" title="Scan de conversation ou d'image client"><i data-lucide="sparkles" aria-hidden="true"></i> Décompilateur IA</button>
+                    <a href="https://adrienfeuilloy.github.io/cerveau/" target="_blank" rel="noopener" class="btn" title="Déposer une capture dans la Boîte de Cerveau"><i data-lucide="notebook-pen" aria-hidden="true"></i> Capture client → Cerveau</a>
                 </div>
             </div>
 
@@ -422,55 +422,6 @@
         </div>
     </div>
 
-    <!-- FENÊTRE : DÉCOMPILATEUR IA -->
-    <div id="decompiler-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="decompiler-title">
-        <div class="sheet sheet-lg">
-            <div class="sheet-head">
-                <h3 id="decompiler-title" class="sheet-title">Décompilateur IA</h3>
-                <button type="button" data-action="closeModal" data-id="decompiler-modal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
-            </div>
-            <div class="sheet-body">
-                <p class="hint m-0">Transforme une capture de conversation client en fiche client + projet.</p>
-                <div id="decompiler-no-key" class="hidden note-ok">
-                    Aucune clé Gemini enregistrée sur cet appareil. Ajoutez-la dans
-                    <button type="button" data-action="closeAndOpenConfig" data-id="decompiler-modal" class="link">Réglages</button> (section « Décompilateur IA »).
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="grid gap-4 content-start">
-                        <button type="button" id="drop-zone" data-action="clickInput" data-id="file-input" class="w-full grid place-items-center gap-2 min-h-[220px] p-6 text-center bg-[#FBFAF8] border border-dashed border-[#1B1A18] rounded-[2px] cursor-pointer hover:bg-white">
-                            <i data-lucide="image-plus" class="w-10 h-10 text-[#CC0C33]" aria-hidden="true"></i>
-                            <span class="font-semibold text-[17px]">Déposez la capture ici</span>
-                            <span class="hint">SMS, WhatsApp, mail, notes manuscrites</span>
-                        </button>
-                        <input type="file" id="file-input" accept="image/*" class="hidden" data-change="handleFileSelect" data-with-event>
-                        <div id="image-preview-container" class="hidden grid gap-2">
-                            <p class="label m-0">Aperçu de la capture</p>
-                            <img id="image-preview" alt="Aperçu de la capture" class="max-h-48 w-full object-contain border border-[#1B1A18]/30 bg-white p-2">
-                            <button type="button" data-action="analyzeImageWithGemini" id="btn-analyze" class="btn btn-primary w-full">
-                                <i data-lucide="wand-2" aria-hidden="true"></i> Décompiler
-                            </button>
-                        </div>
-                    </div>
-                    <div class="grid gap-4 content-start">
-                        <div id="analysis-loading" class="hidden panel pb text-center grid gap-3 justify-items-center">
-                            <span class="spinner" aria-hidden="true"></span>
-                            <p class="m-0 font-semibold" role="status">Extraction du brief…</p>
-                        </div>
-                        <div id="analysis-result-container" class="panel hidden">
-                            <div class="ph flex-wrap">
-                                <h4 class="ph-title">Résultat</h4>
-                                <div class="flex flex-wrap gap-2">
-                                    <button type="button" data-action="copyAnalysisToEditor" class="btn btn-sm"><i data-lucide="copy" aria-hidden="true"></i> Insérer dans le carnet</button>
-                                    <button type="button" id="btn-ai-create" data-action="createFromAnalysis" class="btn btn-sm btn-primary"><i data-lucide="user-plus" aria-hidden="true"></i> Créer client + projet</button>
-                                </div>
-                            </div>
-                            <div id="analysis-text-output" class="pb text-sm max-h-72 overflow-y-auto whitespace-pre-wrap"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- FENÊTRE : FICHE PROJET -->
     <div id="project-detail-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-project-title">
@@ -534,7 +485,6 @@
                     <button type="button" data-action="cancelClientModal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
                 </div>
                 <div class="sheet-body">
-                    <p id="client-ai-hint" class="hidden note-ok m-0">Pré-rempli par l'IA : vérifiez puis enregistrez. Le projet s'ouvrira ensuite.</p>
                     <input type="hidden" id="client-id">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -586,7 +536,6 @@
                     <button type="button" data-action="cancelProjectModal" class="btn btn-icon btn-ghost" aria-label="Fermer"><i data-lucide="x" aria-hidden="true"></i></button>
                 </div>
                 <div class="sheet-body">
-                    <p id="project-ai-hint" class="hidden note-ok m-0">Pré-rempli par l'IA : le compte-rendu sera rangé dans le carnet de ce projet.</p>
                     <input type="hidden" id="project-id">
                     <div>
                         <label for="project-name" class="label">Nom du projet *</label>
@@ -729,20 +678,7 @@
                     <button type="button" data-action="openLoginSetup" class="btn justify-self-start">Activer le login (autre appareil)</button>
 
                     <div class="sheet-section">
-                        <h4 class="sheet-section-title">2. Décompilateur IA <span class="font-medium normal-case tracking-normal">(optionnel)</span></h4>
-                        <p class="hint m-0">Clé Gemini créée sur aistudio.google.com. Elle reste uniquement dans ce navigateur, jamais dans le code.</p>
-                        <div>
-                            <label for="gemini-key-input" class="label">Clé API Gemini</label>
-                            <input type="password" id="gemini-key-input" autocomplete="off" class="field" placeholder="AIza… (laisser vide si inutilisé)">
-                        </div>
-                        <div>
-                            <label for="gemini-model-input" class="label">Modèle Gemini</label>
-                            <input type="text" id="gemini-model-input" autocapitalize="off" class="field" placeholder="gemini-flash-latest">
-                        </div>
-                    </div>
-
-                    <div class="sheet-section">
-                        <h4 class="sheet-section-title">3. Sauvegardes</h4>
+                        <h4 class="sheet-section-title">2. Sauvegardes</h4>
                         <p class="hint m-0">Retrouvez une ancienne version (en cas de fausse manip) ou téléchargez une copie complète.</p>
                         <div class="flex flex-wrap gap-2">
                             <button type="button" data-action="openVersionsModal" class="btn btn-sm"><i data-lucide="history" aria-hidden="true"></i> Versions GitHub</button>
